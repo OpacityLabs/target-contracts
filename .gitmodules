@@ -4,3 +4,6 @@
 [submodule "lib/eigenlayer-middleware"]
 	path = lib/eigenlayer-middleware
 	url = https://github.com/Layr-Labs/eigenlayer-middleware
+[submodule "lib/sp1-helios"]
+	path = lib/sp1-helios
+	url = https://github.com/succinctlabs/sp1-helios
