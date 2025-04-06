@@ -1,81 +1,116 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 
-contract RegistryCoordinatorMimic {
+import {IBLSApkRegistryTypes, IBLSApkRegistryErrors} from "@eigenlayer-middleware/interfaces/IBLSApkRegistry.sol";
+import {IStakeRegistryTypes, IStakeRegistryErrors} from "@eigenlayer-middleware/interfaces/IStakeRegistry.sol";
+import {ISlashingRegistryCoordinatorTypes} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
+import {QuorumBitmapHistoryLib} from "@eigenlayer-middleware/libraries/QuorumBitmapHistoryLib.sol";
+
+import {IMiddlewareShimTypes} from "./interfaces/IMiddlewareShim.sol";
+
+// I cannot inherit both error interfaces because both of them have an error definition `QuorumAlreadyExists()`
+contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkRegistryTypes, IBLSApkRegistryErrors, IStakeRegistryTypes, IMiddlewareShimTypes {
+    uint256 internal quorum0UpdateBlockNumber;
+    ApkUpdate[] internal quorumApkUpdates;
+    StakeUpdate[] internal totalStakeHistory;
+    mapping(bytes32 => StakeUpdate[]) internal operatorStakeHistory;
+    /// @notice maps operator id => historical quorums they registered for
+    mapping(bytes32 => QuorumBitmapUpdate[]) internal operatorBitmapHistory;
+
+    // TODO: exteremly naive implementation, review when relevant
+    function updateState(MiddlewareData calldata middlewareData, bytes calldata proof) external {
+        bytes32 middlewareDataHash = keccak256(abi.encode(middlewareData));
+        _verifyProof(middlewareDataHash, proof);
+
+        quorum0UpdateBlockNumber = middlewareData.quorumUpdateBlockNumber;
+        for (uint256 i = 0; i < middlewareData.quorumApkUpdates.length; i++) {
+            quorumApkUpdates[i] = middlewareData.quorumApkUpdates[i];
+        }
+        for (uint256 i = 0; i < middlewareData.totalStakeHistory.length; i++) {
+            totalStakeHistory[i] = middlewareData.totalStakeHistory[i];
+        }
+        for (uint256 i = 0; i < middlewareData.operatorStakeHistory.length; i++) {
+            bytes32 operatorId = middlewareData.operatorStakeHistory[i].operatorId;
+            StakeUpdate[] memory stakeHistory = middlewareData.operatorStakeHistory[i].stakeHistory;
+            for (uint256 j = 0; j < stakeHistory.length; j++) {
+                operatorStakeHistory[operatorId][j] = stakeHistory[j];
+            }
+        }
+        for (uint256 i = 0; i < middlewareData.operatorBitmapHistory.length; i++) {
+            bytes32 operatorId = middlewareData.operatorBitmapHistory[i].operatorId;
+            QuorumBitmapUpdate[] memory bitmapHistory = middlewareData.operatorBitmapHistory[i].bitmapHistory;
+            for (uint256 j = 0; j < bitmapHistory.length; j++) {
+                operatorBitmapHistory[operatorId][j] = bitmapHistory[j];
+            }
+        }
+    }
 
     /**
      * @notice The total number of quorums that have been created.
      * @return The count of quorums.
      */
-    function quorumCount() external view returns (uint8) {
+    function quorumCount() external pure returns (uint8) {
         return 1;
     }
 
-    // we only have one quorum, we just need to determine if the operator was in the quorum at the given block number
-    // index is an index into a quorum bitmap history of the operator and is computed off-chain
-    // I think it's impractical to implement the quorum bitmap history in full, so this is a big TODO
-    //
+    // TODO: possible to optimize because we know there is only 1 quorum
     function getQuorumBitmapAtBlockNumberByIndex(
         bytes32 operatorId,
         uint32 blockNumber,
         uint256 index
     ) external view returns (uint192) {
-        // TODO: make sure eigenlayer bitmaps are left-aligned
-        return 1;
+        return QuorumBitmapHistoryLib.getQuorumBitmapAtBlockNumberByIndex(
+            operatorBitmapHistory, operatorId, blockNumber, index
+        );
     }
 
-    function minWithdrawalDelayBlocks() external view returns (uint32) {
-        // TODO: bridge from on-chain? theoretically should not be different over time
-        // TODO: didn't find MIN_WITHDRAWAL_DELAY_BLOCKS value in Eigen's docs
-        return 80_000;
+    /// @dev https://github.com/eigenfoundation/ELIPs/blob/main/ELIPs/ELIP-002.md
+    /// @dev in ELIP-002 it's called WITHDRAWAL_DELAY - MIN_WITHDRAWAL_DELAY_BLOCKS is old name
+    /// @dev around 2 weeks
+    function minWithdrawalDelayBlocks() external pure returns (uint32) {
+        return 100_800;
     }
 
     /// @notice mapping from quorum number to the latest block that all quorums were updated all at once
-    function quorumUpdateBlockNumber(uint8 quorumNumber) external view returns (uint256) {
-        // TODO: needs to be bridges from Shim?
-        return 0;
+    function quorumUpdateBlockNumber(uint8 /* quorumNumber */) external view returns (uint256) {
+        return quorum0UpdateBlockNumber;
     }
 
     /*
      * @notice Gets the 24-byte hash of `quorumNumber`'s APK at `blockNumber` and `index`.
-     * @param quorumNumber The quorum to query.
+     * @ param quorumNumber The quorum to query.
      * @param blockNumber The block number to get the APK hash for.
      * @param index The index in the APK history.
      * @return The 24-byte APK hash.
      * @dev Called by checkSignatures in BLSSignatureChecker.sol.
      */
     function getApkHashAtBlockNumberAndIndex(
-        uint8 quorumNumber,
+        uint8 /* quorumNumber */,
         uint32 blockNumber,
         uint256 index
     ) external view returns (bytes24) {
-        // TODO: bridge from Shim
-        // TODO: should we implement an ApkUpdate, or track ourselves the apk hashes?
-        return bytes24(0);
-
-
-        // Original implementation:
-        // ------------------------
+        // NOTICE: this line is modified from original implementation because of only 0 quorum
         // ApkUpdate memory quorumApkUpdate = apkHistory[quorumNumber][index];
+        ApkUpdate memory quorumApkUpdate = quorumApkUpdates[index];
 
-        // /**
-        //  * Validate that the update is valid for the given blockNumber:
-        //  * - blockNumber should be >= the update block number
-        //  * - the next update block number should be either 0 or strictly greater than blockNumber
-        //  */
-        // require(blockNumber >= quorumApkUpdate.updateBlockNumber, BlockNumberTooRecent());
-        // require(
-        //     quorumApkUpdate.nextUpdateBlockNumber == 0
-        //         || blockNumber < quorumApkUpdate.nextUpdateBlockNumber,
-        //     BlockNumberNotLatest()
-        // );
+        /**
+         * Validate that the update is valid for the given blockNumber:
+         * - blockNumber should be >= the update block number
+         * - the next update block number should be either 0 or strictly greater than blockNumber
+         */
+        require(blockNumber >= quorumApkUpdate.updateBlockNumber, BlockNumberTooRecent());
+        require(
+            quorumApkUpdate.nextUpdateBlockNumber == 0
+                || blockNumber < quorumApkUpdate.nextUpdateBlockNumber,
+            BlockNumberNotLatest()
+        );
 
-        // return quorumApkUpdate.apkHash;
+        return quorumApkUpdate.apkHash;
     }
 
     /**
      * @notice Returns the total stake at the specified block number and index for a quorum.
-     * @param quorumNumber The quorum number to query.
+     * @ param quorumNumber The quorum number to query.
      * @param blockNumber The block number to query.
      * @param index The index to query.
      * @return The total stake amount.
@@ -83,20 +118,20 @@ contract RegistryCoordinatorMimic {
      * @dev Used by the BLSSignatureChecker to get past stakes of signing operators.
      */
     function getTotalStakeAtBlockNumberFromIndex(
-        uint8 quorumNumber,
+        uint8 /* quorumNumber */,
         uint32 blockNumber,
         uint256 index
     ) external view returns (uint96) {
-        // TODO: bridge from Shim
-        return 0;
-        // StakeUpdate memory totalStakeUpdate = _totalStakeHistory[quorumNumber][index];
-        // _validateStakeUpdateAtBlockNumber(totalStakeUpdate, blockNumber);
-        // return totalStakeUpdate.stake;
+        // NOTICE: this line is modified from original implementation because of only 0 quorum
+        // StakeUpdate memory totalStakeUpdate = totalStakeHistory[quorumNumber][index];
+        StakeUpdate memory totalStakeUpdate = totalStakeHistory[index];
+        _validateStakeUpdateAtBlockNumber(totalStakeUpdate, blockNumber);
+        return totalStakeUpdate.stake;
     }
 
     /**
      * @notice Returns the stake at the specified block number and index for an operator in a quorum.
-     * @param quorumNumber The quorum number to query.
+     * @ param quorumNumber The quorum number to query.
      * @param blockNumber The block number to query.
      * @param operatorId The id of the operator to query.
      * @param index The index to query.
@@ -105,17 +140,43 @@ contract RegistryCoordinatorMimic {
      * @dev Used by the BLSSignatureChecker to get past stakes of signing operators.
      */
     function getStakeAtBlockNumberAndIndex(
-        uint8 quorumNumber,
+        uint8 /* quorumNumber */,
         uint32 blockNumber,
         bytes32 operatorId,
         uint256 index
     ) external view returns (uint96) {
-        // TODO: bridge from Shim
-        return 0;
-        // StakeUpdate memory operatorStakeUpdate =
-        //     operatorStakeHistory[operatorId][quorumNumber][index];
-        // _validateStakeUpdateAtBlockNumber(operatorStakeUpdate, blockNumber);
-        // return operatorStakeUpdate.stake;
+        // NOTICE: this line is modified from original implementation because of only 0 quorum
+        // StakeUpdate memory operatorStakeUpdate = operatorStakeHistory[operatorId][quorumNumber][index];
+        StakeUpdate memory operatorStakeUpdate = operatorStakeHistory[operatorId][index];
+        _validateStakeUpdateAtBlockNumber(operatorStakeUpdate, blockNumber);
+        return operatorStakeUpdate.stake;
+    }
+
+    
+    //--------------------//
+    // INTERNAL FUNCTIONS //
+    //--------------------//
+
+    /// @notice Checks that the `stakeUpdate` was valid at the given `blockNumber`
+    function _validateStakeUpdateAtBlockNumber(
+        StakeUpdate memory stakeUpdate,
+        uint32 blockNumber
+    ) internal pure {
+        /**
+         * Check that the update is valid for the given blockNumber:
+         * - blockNumber should be >= the update block number
+         * - the next update block number should be either 0 or strictly greater than blockNumber
+         */
+        require(blockNumber >= stakeUpdate.updateBlockNumber, IStakeRegistryErrors.InvalidBlockNumber());
+        require(
+            stakeUpdate.nextUpdateBlockNumber == 0
+                || blockNumber < stakeUpdate.nextUpdateBlockNumber,
+            IStakeRegistryErrors.InvalidBlockNumber()
+        );
+    }
+
+    function _verifyProof(bytes32 middlewareDataHash, bytes calldata proof) internal {
+        // TODO: implement
     }
 }
     
