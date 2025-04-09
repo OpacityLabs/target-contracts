@@ -18,7 +18,7 @@ contract MiddlewareShim is IMiddlewareShimTypes {
         registryCoordinator = _registryCoordinator;
     }
 
-    function updateKeysHash() external {
+    function updateMiddlewareDataHash() external {
         // assume there is only one quorum 0
         uint256 quorumUpdateBlockNumber = registryCoordinator.quorumUpdateBlockNumber(0);
         OperatorKeys[][] memory operatorKeys = getOperatorKeys(registryCoordinator, hex"00", uint32(block.number - 1));
