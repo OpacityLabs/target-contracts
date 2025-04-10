@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 
-import {IBLSApkRegistryTypes, IBLSApkRegistryErrors} from "@eigenlayer-middleware/interfaces/IBLSApkRegistry.sol";
-import {IStakeRegistryTypes, IStakeRegistryErrors} from "@eigenlayer-middleware/interfaces/IStakeRegistry.sol";
+import {IBLSApkRegistry, IBLSApkRegistryTypes, IBLSApkRegistryErrors} from "@eigenlayer-middleware/interfaces/IBLSApkRegistry.sol";
+import {IStakeRegistry, IStakeRegistryTypes, IStakeRegistryErrors, IDelegationManager} from "@eigenlayer-middleware/interfaces/IStakeRegistry.sol";
+import {IIndexRegistry} from "@eigenlayer-middleware/interfaces/IIndexRegistry.sol";
 import {ISlashingRegistryCoordinatorTypes} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
 import {QuorumBitmapHistoryLib} from "@eigenlayer-middleware/libraries/QuorumBitmapHistoryLib.sol";
 
 import {IMiddlewareShimTypes} from "./interfaces/IMiddlewareShim.sol";
 
 // I cannot inherit both error interfaces because both of them have an error definition `QuorumAlreadyExists()`
+// TODO: make Ownable
 contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkRegistryTypes, IBLSApkRegistryErrors, IStakeRegistryTypes, IMiddlewareShimTypes {
     uint256 internal quorum0UpdateBlockNumber;
     ApkUpdate[] internal quorumApkUpdates;
@@ -22,6 +24,18 @@ contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkR
         bytes32 middlewareDataHash = keccak256(abi.encode(middlewareData));
         _verifyProof(middlewareDataHash, proof);
 
+        // TODO: refactor everything to be mappings with sizes, for now doing it this stupid way just to get it working for tests
+        delete quorumApkUpdates;
+        delete totalStakeHistory;
+        for (uint256 i = 0; i < middlewareData.quorumApkUpdates.length; i++) {
+            ApkUpdate memory empty;
+            quorumApkUpdates.push(empty);
+        }
+        for (uint256 i = 0; i < middlewareData.totalStakeHistory.length; i++) {
+            StakeUpdate memory empty;
+            totalStakeHistory.push(empty);
+        }
+
         quorum0UpdateBlockNumber = middlewareData.quorumUpdateBlockNumber;
         for (uint256 i = 0; i < middlewareData.quorumApkUpdates.length; i++) {
             quorumApkUpdates[i] = middlewareData.quorumApkUpdates[i];
@@ -32,17 +46,52 @@ contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkR
         for (uint256 i = 0; i < middlewareData.operatorStakeHistory.length; i++) {
             bytes32 operatorId = middlewareData.operatorStakeHistory[i].operatorId;
             StakeUpdate[] memory stakeHistory = middlewareData.operatorStakeHistory[i].stakeHistory;
+            delete operatorStakeHistory[operatorId];
             for (uint256 j = 0; j < stakeHistory.length; j++) {
-                operatorStakeHistory[operatorId][j] = stakeHistory[j];
+                // operatorStakeHistory[operatorId][j] = stakeHistory[j];
+                operatorStakeHistory[operatorId].push(stakeHistory[j]);
             }
         }
         for (uint256 i = 0; i < middlewareData.operatorBitmapHistory.length; i++) {
             bytes32 operatorId = middlewareData.operatorBitmapHistory[i].operatorId;
             QuorumBitmapUpdate[] memory bitmapHistory = middlewareData.operatorBitmapHistory[i].bitmapHistory;
+            delete operatorBitmapHistory[operatorId];
             for (uint256 j = 0; j < bitmapHistory.length; j++) {
-                operatorBitmapHistory[operatorId][j] = bitmapHistory[j];
+                // operatorBitmapHistory[operatorId][j] = bitmapHistory[j];
+                operatorBitmapHistory[operatorId].push(bitmapHistory[j]);
             }
         }
+    }
+
+    /**
+     * @notice Reference to the BLSApkRegistry contract.
+     * @return The BLSApkRegistry contract interface.
+     */
+    function blsApkRegistry() external view returns (IBLSApkRegistry) {
+        return IBLSApkRegistry(address(this));
+    }
+
+    /**
+     * @notice Reference to the StakeRegistry contract.
+     * @return The StakeRegistry contract interface.
+     */
+    function stakeRegistry() external view returns (IStakeRegistry) {
+        return IStakeRegistry(address(this));
+    }
+
+    /**
+     * @notice Reference to the IndexRegistry contract.
+     * @return The IndexRegistry contract interface.
+     */
+    function indexRegistry() external view returns (IIndexRegistry) {
+        return IIndexRegistry(address(this));
+    }
+
+    /**
+     * @notice Returns the EigenLayer delegation manager contract.
+     */
+    function delegation() external view returns (IDelegationManager) {
+        return IDelegationManager(address(this));
     }
 
     /**
