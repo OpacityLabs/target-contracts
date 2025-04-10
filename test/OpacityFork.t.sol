@@ -71,6 +71,7 @@ contract OpacityForkTest is Test {
 
     function setUp() public {}
 
+    // TODO: actually assert stuff about the quorum stakes
     function test_fullFlow() public {
         // setup
         vm.createSelectFork("holesky");
