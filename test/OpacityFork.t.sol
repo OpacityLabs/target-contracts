@@ -6,11 +6,16 @@ import {StdCheats} from "forge-std/StdCheats.sol";
 // Importing ISignatureUtilsMixinTypes from IRegistryCoordinator.sol in order to not depend on eigenlayer-core
 import {IRegistryCoordinator, ISignatureUtilsMixinTypes} from "@eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
 import {ISlashingRegistryCoordinator} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
-import {IBLSApkRegistryTypes} from "@eigenlayer-middleware/interfaces/IBLSApkRegistry.sol";
+import {IBLSApkRegistry, IBLSApkRegistryTypes} from "@eigenlayer-middleware/interfaces/IBLSApkRegistry.sol";
+import {IBLSSignatureCheckerTypes} from "@eigenlayer-middleware/interfaces/IBLSSignatureChecker.sol";
+import {BLSSignatureChecker} from "@eigenlayer-middleware/BLSSignatureChecker.sol";
+import {OperatorStateRetriever} from "@eigenlayer-middleware/OperatorStateRetriever.sol";
 import {BN254} from "@eigenlayer-middleware/libraries/BN254.sol";
 import {Strings} from "@openzeppelin-utils/Strings.sol";
 
 import {BN256G2} from "src/libraries/BN256G2.sol";
+import {MiddlewareShim} from "src/MiddlewareShim.sol";
+import {RegistryCoordinatorMimic} from "src/RegistryCoordinatorMimic.sol";
 
 // Mainnet
 // DELEGATION_MANAGER_ADDRESS=0x39053D51B77DC0d36036Fc1fCc8Cb819df8Ef37A
@@ -49,7 +54,7 @@ contract OpacityForkTest is Test {
     address constant OPACITY_REGISTRY_COORDINATOR_ADDRESS_HOLESKY = 0x3e43AA225b5cB026C5E8a53f62572b10D526a50B;
     address constant OPACTIY_AVS_ADDRESS_HOLESKY = 0xbfc5d26C6eEb46475eB3960F5373edC5341eE535;
 
-    // I don't really like having these signatures written as static strings
+    // TODO(chore): I don't really like having these signatures written as static strings
     string constant DEPOSIT_FUNCTION_SIGNATURE = "depositIntoStrategy(address,address,uint256)";
     string constant APPROVE_FUNCTION_SIGNATURE = "approve(address,uint256)";
     string constant REGISTER_FUNCTION_SIGNATURE = "registerAsOperator(address,uint32,string)";
@@ -70,6 +75,8 @@ contract OpacityForkTest is Test {
         ISlashingRegistryCoordinator registryCoordinator = ISlashingRegistryCoordinator(OPACITY_REGISTRY_COORDINATOR_ADDRESS_HOLESKY);
 
         // eject all operators in quorum 0 in order to register new ones
+        // scope for stack-too-deep
+        {
         address ejector = registryCoordinator.ejector();
         bytes32[] memory operatorIds = registryCoordinator.indexRegistry().getOperatorListAtBlockNumber(0, uint32(3633000));
         for (uint256 i = 0; i < operatorIds.length; i++) {
@@ -77,12 +84,97 @@ contract OpacityForkTest is Test {
             vm.prank(ejector);
             registryCoordinator.ejectOperator(operator, hex"00");
         }
+        }
 
         Operator memory operator0 =_createOperator(0);
         _registerOperator(registryCoordinator, OPACTIY_AVS_ADDRESS_HOLESKY, operator0);
+        Operator memory operator1 = _createOperator(1);
+        _registerOperator(registryCoordinator, OPACTIY_AVS_ADDRESS_HOLESKY, operator1);
+        Operator memory operator2 = _createOperator(2);
+        _registerOperator(registryCoordinator, OPACTIY_AVS_ADDRESS_HOLESKY, operator2);
+        // forward the blocknumber by 1 so we can reference a block where the operators are registered
+        vm.roll(block.number + 1);
+        uint32 referenceBlockNumber = uint32(block.number - 1);
+
+        // 1. Create arbitrary message to be signed with BLS, and sign with signer set
+        // 2. Retreive checkSignatures params through operator state retriever, and verify them in the BLSSignatureChecker
+        // 3. Deploy middleware shim, read the middleware data, and update its data hash
+        // 4. Deploy registry coordinator mimic, and call updateState with the middleware data (proof verification is WIP)
+        // 5. Deploy another BLSSignatureChecker, this time with the registry coordinator mimic
+        // 6. Call checkSignatures with the same original message
+
+        // dummy message
+        bytes32 messageHash = bytes32(uint256(0x1234));
+        BN254.G1Point memory sigma;
+        {
+        BN254.G1Point memory sig1 = _signBLSMessage(operator1, messageHash);
+        BN254.G1Point memory sig2 = _signBLSMessage(operator2, messageHash);
+        sigma = sigma.plus(sig1);
+        sigma = sigma.plus(sig2);
+        }
+
+        {
+        IBLSApkRegistry blsApkRegistry = registryCoordinator.blsApkRegistry();
+        vm.mockCall(
+            address(blsApkRegistry),
+            abi.encodeCall(IBLSApkRegistry.getOperatorPubkeyG2, (operator0.operator)),
+            abi.encode(operator0.pk2)
+        );
+        vm.mockCall(
+            address(blsApkRegistry),
+            abi.encodeCall(IBLSApkRegistry.getOperatorPubkeyG2, (operator1.operator)),
+            abi.encode(operator1.pk2)
+        );
+        vm.mockCall(
+            address(blsApkRegistry),
+            abi.encodeCall(IBLSApkRegistry.getOperatorPubkeyG2, (operator2.operator)),
+            abi.encode(operator2.pk2)
+        );
+        }
+
+        // Deploy operator state retriever
+        OperatorStateRetriever retriever = new OperatorStateRetriever();
+        // Deploy bls signature checker
+        BLSSignatureChecker checker = new BLSSignatureChecker(registryCoordinator);
+
+        // Compute the non-signer stakes and signature
+        IBLSSignatureCheckerTypes.NonSignerStakesAndSignature memory nonSignerStakesAndSignature;
+        {
+        address[] memory signers = new address[](2);
+        signers[0] = operator1.operator;
+        signers[1] = operator2.operator;
+        nonSignerStakesAndSignature = retriever.getNonSignerStakesAndSignature(registryCoordinator, hex"00", sigma, signers, referenceBlockNumber);
+        }
+
+        // Check that the signature passes
+        {
+        (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals,) = checker.checkSignatures(messageHash, hex"00", referenceBlockNumber, nonSignerStakesAndSignature);
+        console.log("quorumStakeTotals");
+        console.log(quorumStakeTotals.signedStakeForQuorum[0]);
+        console.log(quorumStakeTotals.totalStakeForQuorum[0]);
+        }
+
+        // Deploy middleware shim
+        MiddlewareShim shim = new MiddlewareShim(registryCoordinator);
+        shim.updateMiddlewareDataHash();
+        console.log("middlewareDataHash");
+        console.logBytes32(shim.middlewareDataHash());
+
+        // Deploy registry coordinator mimic
+        RegistryCoordinatorMimic mimic = new RegistryCoordinatorMimic();
+        // TODO: proof verification
+        mimic.updateState(shim.getMiddlewareData(registryCoordinator, referenceBlockNumber), "mock proof");
+
+        // Deploy another BLSSignatureChecker
+        BLSSignatureChecker checker2 = new BLSSignatureChecker(ISlashingRegistryCoordinator(address(mimic)));
+        {
+        (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals2,) = checker2.checkSignatures(messageHash, hex"00", referenceBlockNumber, nonSignerStakesAndSignature);
+        console.log("quorumStakeTotals2");
+        console.log(quorumStakeTotals2.signedStakeForQuorum[0]);
+        console.log(quorumStakeTotals2.totalStakeForQuorum[0]);
+        }
     }
 
-    // TODO(chore): Consider using interfaces instead of staticalls with signatures
     function _createOperator(uint256 seed) internal returns(Operator memory) {
         string memory operatorName = string.concat("Operator ", Strings.toString(seed));
         StdCheats.Account memory account = makeAccount(operatorName);
@@ -150,6 +242,12 @@ contract OpacityForkTest is Test {
         require(result, "Pairing check on BLS key generation failed");
 
         return (sk, pk1, pk2);
+    }
+
+    function _signBLSMessage(Operator memory operator, bytes32 messageHash) internal view returns(BN254.G1Point memory) {
+        BN254.G1Point memory h = BN254.hashToG1(messageHash);
+        BN254.G1Point memory sig = BN254.scalar_mul(h, operator.blsPrivateKey);
+        return sig;
     }
 
     // copied from AVSDirectoryUnit.t.sol
