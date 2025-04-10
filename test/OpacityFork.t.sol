@@ -75,7 +75,7 @@ contract OpacityForkTest is Test {
         ISlashingRegistryCoordinator registryCoordinator = ISlashingRegistryCoordinator(OPACITY_REGISTRY_COORDINATOR_ADDRESS_HOLESKY);
 
         // eject all operators in quorum 0 in order to register new ones
-        // scope for stack-too-deep
+        // stack-too-deep
         {
         address ejector = registryCoordinator.ejector();
         bytes32[] memory operatorIds = registryCoordinator.indexRegistry().getOperatorListAtBlockNumber(0, uint32(3633000));
@@ -106,6 +106,7 @@ contract OpacityForkTest is Test {
         // dummy message
         bytes32 messageHash = bytes32(uint256(0x1234));
         BN254.G1Point memory sigma;
+        // stack-too-deep
         {
         BN254.G1Point memory sig1 = _signBLSMessage(operator1, messageHash);
         BN254.G1Point memory sig2 = _signBLSMessage(operator2, messageHash);
@@ -113,6 +114,7 @@ contract OpacityForkTest is Test {
         sigma = sigma.plus(sig2);
         }
 
+        // stack-too-deep
         {
         IBLSApkRegistry blsApkRegistry = registryCoordinator.blsApkRegistry();
         vm.mockCall(
@@ -139,6 +141,7 @@ contract OpacityForkTest is Test {
 
         // Compute the non-signer stakes and signature
         IBLSSignatureCheckerTypes.NonSignerStakesAndSignature memory nonSignerStakesAndSignature;
+        // stack-too-deep
         {
         address[] memory signers = new address[](2);
         signers[0] = operator1.operator;
@@ -147,6 +150,7 @@ contract OpacityForkTest is Test {
         }
 
         // Check that the signature passes
+        // stack-too-deep
         {
         (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals,) = checker.checkSignatures(messageHash, hex"00", referenceBlockNumber, nonSignerStakesAndSignature);
         console.log("quorumStakeTotals");
@@ -167,6 +171,7 @@ contract OpacityForkTest is Test {
 
         // Deploy another BLSSignatureChecker
         BLSSignatureChecker checker2 = new BLSSignatureChecker(ISlashingRegistryCoordinator(address(mimic)));
+        // stack-too-deep
         {
         (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals2,) = checker2.checkSignatures(messageHash, hex"00", referenceBlockNumber, nonSignerStakesAndSignature);
         console.log("quorumStakeTotals2");
@@ -250,7 +255,7 @@ contract OpacityForkTest is Test {
         return sig;
     }
 
-    // copied from AVSDirectoryUnit.t.sol
+    // TODO: use Operator struct instead of operatorSk?
     function _newOperatorRegistrationSignature(uint operatorSk, address avs, bytes32 salt, uint expiry)
         internal
         view
