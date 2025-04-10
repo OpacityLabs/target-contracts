@@ -4,7 +4,9 @@ pragma solidity ^0.8.12;
 import {Test, console} from "forge-std/Test.sol";
 import {StdCheats} from "forge-std/StdCheats.sol";
 // Importing ISignatureUtilsMixinTypes from IRegistryCoordinator.sol in order to not depend on eigenlayer-core
-import {IRegistryCoordinator, ISignatureUtilsMixinTypes} from "@eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
+import {
+    IRegistryCoordinator, ISignatureUtilsMixinTypes
+} from "@eigenlayer-middleware/interfaces/IRegistryCoordinator.sol";
 import {ISlashingRegistryCoordinator} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
 import {IBLSApkRegistry, IBLSApkRegistryTypes} from "@eigenlayer-middleware/interfaces/IBLSApkRegistry.sol";
 import {IBLSSignatureCheckerTypes} from "@eigenlayer-middleware/interfaces/IBLSSignatureChecker.sol";
@@ -19,19 +21,19 @@ import {RegistryCoordinatorMimic} from "src/RegistryCoordinatorMimic.sol";
 
 // Mainnet
 // DELEGATION_MANAGER_ADDRESS=0x39053D51B77DC0d36036Fc1fCc8Cb819df8Ef37A
-// Holesky 
+// Holesky
 // DELEGATION_MANAGER_ADDRESS=0xA44151489861Fe9e3055d95adC98FbD462B948e7
 // Mainnet
 // STRATEGY_MANAGER_ADDRESS=0x858646372CC42E1A627fcE94aa7A7033e7CF075A
-// Holesky 
+// Holesky
 // STRATEGY_MANAGER_ADDRESS=0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6
-// Holesky stETH 
+// Holesky stETH
 // LST_CONTRACT_ADDRESS=0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034
 // Mainnet stETH
 // LST_CONTRACT_ADDRESS=0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84
-// Holesky stETH strategy 
+// Holesky stETH strategy
 // LST_STRATEGY_ADDRESS=0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3
-// Mainnet stETH strategy 
+// Mainnet stETH strategy
 // LST_STRATEGY_ADDRESS=0x93c4b944D05dfe6df7645A86cd2206016c51564D
 
 // Works with M2 eignelayer version in order to be able to fork Opacity and not do a full deployment.
@@ -67,26 +69,29 @@ contract OpacityForkTest is Test {
         BN254.G2Point pk2;
     }
 
-    function setUp() public { }
+    function setUp() public {}
 
+    // TODO: actually assert stuff about the quorum stakes
     function test_fullFlow() public {
         // setup
         vm.createSelectFork("holesky");
-        ISlashingRegistryCoordinator registryCoordinator = ISlashingRegistryCoordinator(OPACITY_REGISTRY_COORDINATOR_ADDRESS_HOLESKY);
+        ISlashingRegistryCoordinator registryCoordinator =
+            ISlashingRegistryCoordinator(OPACITY_REGISTRY_COORDINATOR_ADDRESS_HOLESKY);
 
         // eject all operators in quorum 0 in order to register new ones
-        // scope for stack-too-deep
+        // stack-too-deep
         {
-        address ejector = registryCoordinator.ejector();
-        bytes32[] memory operatorIds = registryCoordinator.indexRegistry().getOperatorListAtBlockNumber(0, uint32(3633000));
-        for (uint256 i = 0; i < operatorIds.length; i++) {
-            address operator = registryCoordinator.getOperatorFromId(operatorIds[i]);
-            vm.prank(ejector);
-            registryCoordinator.ejectOperator(operator, hex"00");
-        }
+            address ejector = registryCoordinator.ejector();
+            bytes32[] memory operatorIds =
+                registryCoordinator.indexRegistry().getOperatorListAtBlockNumber(0, uint32(3633000));
+            for (uint256 i = 0; i < operatorIds.length; i++) {
+                address operator = registryCoordinator.getOperatorFromId(operatorIds[i]);
+                vm.prank(ejector);
+                registryCoordinator.ejectOperator(operator, hex"00");
+            }
         }
 
-        Operator memory operator0 =_createOperator(0);
+        Operator memory operator0 = _createOperator(0);
         _registerOperator(registryCoordinator, OPACTIY_AVS_ADDRESS_HOLESKY, operator0);
         Operator memory operator1 = _createOperator(1);
         _registerOperator(registryCoordinator, OPACTIY_AVS_ADDRESS_HOLESKY, operator1);
@@ -106,30 +111,32 @@ contract OpacityForkTest is Test {
         // dummy message
         bytes32 messageHash = bytes32(uint256(0x1234));
         BN254.G1Point memory sigma;
+        // stack-too-deep
         {
-        BN254.G1Point memory sig1 = _signBLSMessage(operator1, messageHash);
-        BN254.G1Point memory sig2 = _signBLSMessage(operator2, messageHash);
-        sigma = sigma.plus(sig1);
-        sigma = sigma.plus(sig2);
+            BN254.G1Point memory sig1 = _signBLSMessage(operator1, messageHash);
+            BN254.G1Point memory sig2 = _signBLSMessage(operator2, messageHash);
+            sigma = sigma.plus(sig1);
+            sigma = sigma.plus(sig2);
         }
 
+        // stack-too-deep
         {
-        IBLSApkRegistry blsApkRegistry = registryCoordinator.blsApkRegistry();
-        vm.mockCall(
-            address(blsApkRegistry),
-            abi.encodeCall(IBLSApkRegistry.getOperatorPubkeyG2, (operator0.operator)),
-            abi.encode(operator0.pk2)
-        );
-        vm.mockCall(
-            address(blsApkRegistry),
-            abi.encodeCall(IBLSApkRegistry.getOperatorPubkeyG2, (operator1.operator)),
-            abi.encode(operator1.pk2)
-        );
-        vm.mockCall(
-            address(blsApkRegistry),
-            abi.encodeCall(IBLSApkRegistry.getOperatorPubkeyG2, (operator2.operator)),
-            abi.encode(operator2.pk2)
-        );
+            IBLSApkRegistry blsApkRegistry = registryCoordinator.blsApkRegistry();
+            vm.mockCall(
+                address(blsApkRegistry),
+                abi.encodeCall(IBLSApkRegistry.getOperatorPubkeyG2, (operator0.operator)),
+                abi.encode(operator0.pk2)
+            );
+            vm.mockCall(
+                address(blsApkRegistry),
+                abi.encodeCall(IBLSApkRegistry.getOperatorPubkeyG2, (operator1.operator)),
+                abi.encode(operator1.pk2)
+            );
+            vm.mockCall(
+                address(blsApkRegistry),
+                abi.encodeCall(IBLSApkRegistry.getOperatorPubkeyG2, (operator2.operator)),
+                abi.encode(operator2.pk2)
+            );
         }
 
         // Deploy operator state retriever
@@ -139,19 +146,24 @@ contract OpacityForkTest is Test {
 
         // Compute the non-signer stakes and signature
         IBLSSignatureCheckerTypes.NonSignerStakesAndSignature memory nonSignerStakesAndSignature;
+        // stack-too-deep
         {
-        address[] memory signers = new address[](2);
-        signers[0] = operator1.operator;
-        signers[1] = operator2.operator;
-        nonSignerStakesAndSignature = retriever.getNonSignerStakesAndSignature(registryCoordinator, hex"00", sigma, signers, referenceBlockNumber);
+            address[] memory signers = new address[](2);
+            signers[0] = operator1.operator;
+            signers[1] = operator2.operator;
+            nonSignerStakesAndSignature = retriever.getNonSignerStakesAndSignature(
+                registryCoordinator, hex"00", sigma, signers, referenceBlockNumber
+            );
         }
 
         // Check that the signature passes
+        // stack-too-deep
         {
-        (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals,) = checker.checkSignatures(messageHash, hex"00", referenceBlockNumber, nonSignerStakesAndSignature);
-        console.log("quorumStakeTotals");
-        console.log(quorumStakeTotals.signedStakeForQuorum[0]);
-        console.log(quorumStakeTotals.totalStakeForQuorum[0]);
+            (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals,) =
+                checker.checkSignatures(messageHash, hex"00", referenceBlockNumber, nonSignerStakesAndSignature);
+            console.log("quorumStakeTotals");
+            console.log(quorumStakeTotals.signedStakeForQuorum[0]);
+            console.log(quorumStakeTotals.totalStakeForQuorum[0]);
         }
 
         // Deploy middleware shim
@@ -167,15 +179,17 @@ contract OpacityForkTest is Test {
 
         // Deploy another BLSSignatureChecker
         BLSSignatureChecker checker2 = new BLSSignatureChecker(ISlashingRegistryCoordinator(address(mimic)));
+        // stack-too-deep
         {
-        (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals2,) = checker2.checkSignatures(messageHash, hex"00", referenceBlockNumber, nonSignerStakesAndSignature);
-        console.log("quorumStakeTotals2");
-        console.log(quorumStakeTotals2.signedStakeForQuorum[0]);
-        console.log(quorumStakeTotals2.totalStakeForQuorum[0]);
+            (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals2,) =
+                checker2.checkSignatures(messageHash, hex"00", referenceBlockNumber, nonSignerStakesAndSignature);
+            console.log("quorumStakeTotals2");
+            console.log(quorumStakeTotals2.signedStakeForQuorum[0]);
+            console.log(quorumStakeTotals2.totalStakeForQuorum[0]);
         }
     }
 
-    function _createOperator(uint256 seed) internal returns(Operator memory) {
+    function _createOperator(uint256 seed) internal returns (Operator memory) {
         string memory operatorName = string.concat("Operator ", Strings.toString(seed));
         StdCheats.Account memory account = makeAccount(operatorName);
         address operatorAddress = account.addr;
@@ -184,22 +198,30 @@ contract OpacityForkTest is Test {
 
         // mint 7 stETH to operator
         hoax(operatorAddress, 7 ether);
-        (bool success, ) = LST_CONTRACT_ADDRESS_HOLESKY.call{value: 7 ether}("");
+        (bool success,) = LST_CONTRACT_ADDRESS_HOLESKY.call{value: 7 ether}("");
         require(success, string.concat("Mint failed for ", operatorName));
 
         // approve 7 stETH to strategy
         vm.prank(operatorAddress);
-        (success, ) = LST_CONTRACT_ADDRESS_HOLESKY.call(abi.encodeWithSignature(APPROVE_FUNCTION_SIGNATURE, STRATEGY_MANAGER_ADDRESS_HOLESKY, 7 ether));
+        (success,) = LST_CONTRACT_ADDRESS_HOLESKY.call(
+            abi.encodeWithSignature(APPROVE_FUNCTION_SIGNATURE, STRATEGY_MANAGER_ADDRESS_HOLESKY, 7 ether)
+        );
         require(success, string.concat("Approve failed for ", operatorName));
 
         // deposit 7 stETH to strategy
         vm.prank(operatorAddress);
-        (success, ) = STRATEGY_MANAGER_ADDRESS_HOLESKY.call(abi.encodeWithSignature(DEPOSIT_FUNCTION_SIGNATURE, LST_STRATEGY_ADDRESS_HOLESKY, LST_CONTRACT_ADDRESS_HOLESKY, 7 ether));
+        (success,) = STRATEGY_MANAGER_ADDRESS_HOLESKY.call(
+            abi.encodeWithSignature(
+                DEPOSIT_FUNCTION_SIGNATURE, LST_STRATEGY_ADDRESS_HOLESKY, LST_CONTRACT_ADDRESS_HOLESKY, 7 ether
+            )
+        );
         require(success, string.concat("Deposit failed for ", operatorName));
 
         // register operator in delegation manager
         vm.prank(operatorAddress);
-        (success, ) = DELEGATION_MANAGER_ADDRESS_HOLESKY.call(abi.encodeWithSignature(REGISTER_FUNCTION_SIGNATURE, address(0), uint32(0), "foo.bar"));
+        (success,) = DELEGATION_MANAGER_ADDRESS_HOLESKY.call(
+            abi.encodeWithSignature(REGISTER_FUNCTION_SIGNATURE, address(0), uint32(0), "foo.bar")
+        );
         require(success, string.concat("Register failed for ", operatorName));
 
         return Operator({
@@ -211,7 +233,9 @@ contract OpacityForkTest is Test {
         });
     }
 
-    function _registerOperator(ISlashingRegistryCoordinator registryCoordinator, address avs, Operator memory operator) internal {
+    function _registerOperator(ISlashingRegistryCoordinator registryCoordinator, address avs, Operator memory operator)
+        internal
+    {
         bytes memory quorumNumbers = hex"00";
         string memory socket = "foo.bar";
 
@@ -224,13 +248,20 @@ contract OpacityForkTest is Test {
             pubkeyRegistrationSignature: sig
         });
 
-        ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry memory operatorSignature = _newOperatorRegistrationSignature(operator.ecdsaPrivateKey, avs, bytes32(0), block.timestamp + 1 days);
+        ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry memory operatorSignature =
+            _newOperatorRegistrationSignature(operator.ecdsaPrivateKey, avs, bytes32(0), block.timestamp + 1 days);
 
         vm.prank(operator.operator);
-        IRegistryCoordinator(address(registryCoordinator)).registerOperator(quorumNumbers, socket, params, operatorSignature);
+        IRegistryCoordinator(address(registryCoordinator)).registerOperator(
+            quorumNumbers, socket, params, operatorSignature
+        );
     }
 
-    function _generateBLSKeys(uint256 seed) internal view returns(uint256, BN254.G1Point memory, BN254.G2Point memory) {
+    function _generateBLSKeys(uint256 seed)
+        internal
+        view
+        returns (uint256, BN254.G1Point memory, BN254.G2Point memory)
+    {
         uint256 sk = uint256(keccak256(abi.encodePacked(seed)));
         BN254.G1Point memory pk1 = BN254.scalar_mul(BN254.generatorG1(), sk);
         BN254.G2Point memory g2 = BN254.generatorG2();
@@ -244,14 +275,18 @@ contract OpacityForkTest is Test {
         return (sk, pk1, pk2);
     }
 
-    function _signBLSMessage(Operator memory operator, bytes32 messageHash) internal view returns(BN254.G1Point memory) {
+    function _signBLSMessage(Operator memory operator, bytes32 messageHash)
+        internal
+        view
+        returns (BN254.G1Point memory)
+    {
         BN254.G1Point memory h = BN254.hashToG1(messageHash);
         BN254.G1Point memory sig = BN254.scalar_mul(h, operator.blsPrivateKey);
         return sig;
     }
 
-    // copied from AVSDirectoryUnit.t.sol
-    function _newOperatorRegistrationSignature(uint operatorSk, address avs, bytes32 salt, uint expiry)
+    // TODO: use Operator struct instead of operatorSk?
+    function _newOperatorRegistrationSignature(uint256 operatorSk, address avs, bytes32 salt, uint256 expiry)
         internal
         view
         returns (ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry memory)
@@ -261,14 +296,9 @@ contract OpacityForkTest is Test {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(operatorSk, operatorRegistrationDigestHash);
         bytes memory signature = abi.encodePacked(r, s, v);
-        return ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry({
-            signature: signature,
-            salt: salt,
-            expiry: expiry
-        });
+        return ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry({signature: signature, salt: salt, expiry: expiry});
     }
 }
-
 
 // Imported only relevant IAVSDirectory functions in order to not depend on eigenlayer-core
 interface IAVSDirectory {
@@ -280,10 +310,8 @@ interface IAVSDirectory {
      *  @param salt A unique and single-use value associated with the approver's signature.
      *  @param expiry The time after which the approver's signature becomes invalid.
      */
-    function calculateOperatorAVSRegistrationDigestHash(
-        address operator,
-        address avs,
-        bytes32 salt,
-        uint256 expiry
-    ) external view returns (bytes32);
+    function calculateOperatorAVSRegistrationDigestHash(address operator, address avs, bytes32 salt, uint256 expiry)
+        external
+        view
+        returns (bytes32);
 }
