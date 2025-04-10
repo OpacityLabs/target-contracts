@@ -20,21 +20,19 @@ contract MiddlewareShim is IMiddlewareShimTypes {
 
     function updateMiddlewareDataHash() external {
         // assume there is only one quorum 0
-        uint256 quorumUpdateBlockNumber = registryCoordinator.quorumUpdateBlockNumber(0);
-        OperatorKeys[][] memory operatorKeys = getOperatorKeys(registryCoordinator, hex"00", uint32(block.number - 1));
-        ApkUpdate[] memory quorumApkUpdates = _getQuorumApkUpdates(registryCoordinator);  // TODO: should pass blocknumber? Is there a case where we don't want the mimic to have future information
-        StakeUpdate[] memory totalStakeHistory = _getTotalStakeHistory();  // TODO: should pass blocknumber? Is there a case where we don't want the mimic to have future information
-        OperatorStakeHistoryEntry[] memory operatorStakeHistory = _getOperatorStakeHistoryOfQuorum(registryCoordinator, uint32(block.number - 1));
-        OperatorBitmapHistoryEntry[] memory operatorBitmapHistory = _getOperatorBitmapHistory(registryCoordinator, uint32(block.number - 1));
-        MiddlewareData memory middlewareData = MiddlewareData({
-            quorumUpdateBlockNumber: quorumUpdateBlockNumber,
-            operatorKeys: operatorKeys,
-            quorumApkUpdates: quorumApkUpdates,
-            totalStakeHistory: totalStakeHistory,
-            operatorStakeHistory: operatorStakeHistory,
-            operatorBitmapHistory: operatorBitmapHistory
-        });
+        MiddlewareData memory middlewareData = getMiddlewareData(registryCoordinator, uint32(block.number - 1));
         middlewareDataHash = keccak256(abi.encode(middlewareData));
+    }
+
+    function getMiddlewareData(ISlashingRegistryCoordinator _registryCoordinator, uint32 blockNumber) public view returns (MiddlewareData memory) {
+        return MiddlewareData({
+            quorumUpdateBlockNumber: _registryCoordinator.quorumUpdateBlockNumber(0),
+            operatorKeys: getOperatorKeys(_registryCoordinator, hex"00", blockNumber),
+            quorumApkUpdates: _getQuorumApkUpdates(_registryCoordinator),
+            totalStakeHistory: _getTotalStakeHistory(_registryCoordinator),
+            operatorStakeHistory: _getOperatorStakeHistoryOfQuorum(_registryCoordinator, blockNumber),
+            operatorBitmapHistory: _getOperatorBitmapHistory(_registryCoordinator, blockNumber)
+        });
     }
 
     function getOperatorKeys(
@@ -92,8 +90,9 @@ contract MiddlewareShim is IMiddlewareShimTypes {
     }
 
     function _getTotalStakeHistory(
+        ISlashingRegistryCoordinator _registryCoordinator
     ) internal view returns (StakeUpdate[] memory) {
-        IStakeRegistry stakeRegistry = registryCoordinator.stakeRegistry();
+        IStakeRegistry stakeRegistry = _registryCoordinator.stakeRegistry();
         uint256 totalStakeHistoryLength = stakeRegistry.getTotalStakeHistoryLength(0);
         StakeUpdate[] memory totalStakeHistory = new StakeUpdate[](totalStakeHistoryLength);
 
