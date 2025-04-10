@@ -13,7 +13,7 @@ import {IMiddlewareShimTypes} from "./interfaces/IMiddlewareShim.sol";
 contract MiddlewareShim is IMiddlewareShimTypes {
     bytes32 public middlewareDataHash;
     ISlashingRegistryCoordinator public registryCoordinator;
-    
+
     constructor(ISlashingRegistryCoordinator _registryCoordinator) {
         registryCoordinator = _registryCoordinator;
     }
@@ -24,7 +24,11 @@ contract MiddlewareShim is IMiddlewareShimTypes {
         middlewareDataHash = keccak256(abi.encode(middlewareData));
     }
 
-    function getMiddlewareData(ISlashingRegistryCoordinator _registryCoordinator, uint32 blockNumber) public view returns (MiddlewareData memory) {
+    function getMiddlewareData(ISlashingRegistryCoordinator _registryCoordinator, uint32 blockNumber)
+        public
+        view
+        returns (MiddlewareData memory)
+    {
         return MiddlewareData({
             quorumUpdateBlockNumber: _registryCoordinator.quorumUpdateBlockNumber(0),
             operatorKeys: getOperatorKeys(_registryCoordinator, hex"00", blockNumber),
@@ -47,22 +51,20 @@ contract MiddlewareShim is IMiddlewareShimTypes {
         OperatorKeys[][] memory operatorKeys = new OperatorKeys[][](quorumNumbers.length);
         for (uint256 i = 0; i < quorumNumbers.length; i++) {
             uint8 quorumNumber = uint8(quorumNumbers[i]);
-            bytes32[] memory operatorIds =
-                indexRegistry.getOperatorListAtBlockNumber(quorumNumber, blockNumber);
+            bytes32[] memory operatorIds = indexRegistry.getOperatorListAtBlockNumber(quorumNumber, blockNumber);
             operatorKeys[i] = new OperatorKeys[](operatorIds.length);
             for (uint256 j = 0; j < operatorIds.length; j++) {
                 address operator = blsApkRegistry.getOperatorFromPubkeyHash(operatorIds[j]);
                 {
-                (uint256 x, uint256 y) = blsApkRegistry.operatorToPubkey(operator);
-                operatorKeys[i][j].pkG1 = BN254.G1Point(x, y);
+                    (uint256 x, uint256 y) = blsApkRegistry.operatorToPubkey(operator);
+                    operatorKeys[i][j].pkG1 = BN254.G1Point(x, y);
                 }
                 {
-                operatorKeys[i][j].pkG2 = blsApkRegistry.getOperatorPubkeyG2(operator);
+                    operatorKeys[i][j].pkG2 = blsApkRegistry.getOperatorPubkeyG2(operator);
                 }
                 {
-                operatorKeys[i][j].stake = stakeRegistry.getStakeAtBlockNumber(
-                    bytes32(operatorIds[j]), quorumNumber, blockNumber
-                );
+                    operatorKeys[i][j].stake =
+                        stakeRegistry.getStakeAtBlockNumber(bytes32(operatorIds[j]), quorumNumber, blockNumber);
                 }
             }
         }
@@ -70,9 +72,11 @@ contract MiddlewareShim is IMiddlewareShimTypes {
         return operatorKeys;
     }
 
-    function _getQuorumApkUpdates(
-        ISlashingRegistryCoordinator _registryCoordinator
-    ) internal view returns (ApkUpdate[] memory) {
+    function _getQuorumApkUpdates(ISlashingRegistryCoordinator _registryCoordinator)
+        internal
+        view
+        returns (ApkUpdate[] memory)
+    {
         IBLSApkRegistry blsApkRegistry = _registryCoordinator.blsApkRegistry();
         uint32 apkHistoryLength = blsApkRegistry.getApkHistoryLength(0);
         ApkUpdate[] memory apkUpdates = new ApkUpdate[](apkHistoryLength);
@@ -89,9 +93,11 @@ contract MiddlewareShim is IMiddlewareShimTypes {
         return apkUpdates;
     }
 
-    function _getTotalStakeHistory(
-        ISlashingRegistryCoordinator _registryCoordinator
-    ) internal view returns (StakeUpdate[] memory) {
+    function _getTotalStakeHistory(ISlashingRegistryCoordinator _registryCoordinator)
+        internal
+        view
+        returns (StakeUpdate[] memory)
+    {
         IStakeRegistry stakeRegistry = _registryCoordinator.stakeRegistry();
         uint256 totalStakeHistoryLength = stakeRegistry.getTotalStakeHistoryLength(0);
         StakeUpdate[] memory totalStakeHistory = new StakeUpdate[](totalStakeHistoryLength);
@@ -103,10 +109,11 @@ contract MiddlewareShim is IMiddlewareShimTypes {
     }
 
     // TODO: recomputing all operator ids of quorum 0, if this function starts to hit gas limits this is optimizable
-    function _getOperatorStakeHistoryOfQuorum(
-        ISlashingRegistryCoordinator _registryCoordinator,
-        uint32 blockNumber
-    ) internal view returns (OperatorStakeHistoryEntry[] memory) {
+    function _getOperatorStakeHistoryOfQuorum(ISlashingRegistryCoordinator _registryCoordinator, uint32 blockNumber)
+        internal
+        view
+        returns (OperatorStakeHistoryEntry[] memory)
+    {
         IStakeRegistry stakeRegistry = _registryCoordinator.stakeRegistry();
         IIndexRegistry indexRegistry = _registryCoordinator.indexRegistry();
 
@@ -122,10 +129,11 @@ contract MiddlewareShim is IMiddlewareShimTypes {
     }
 
     // TODO: recomputing all operator ids of quorum 0, if this function starts to hit gas limits this is optimizable
-    function _getOperatorBitmapHistory(
-        ISlashingRegistryCoordinator _registryCoordinator,
-        uint32 blockNumber
-    ) internal view returns (OperatorBitmapHistoryEntry[] memory) {
+    function _getOperatorBitmapHistory(ISlashingRegistryCoordinator _registryCoordinator, uint32 blockNumber)
+        internal
+        view
+        returns (OperatorBitmapHistoryEntry[] memory)
+    {
         IIndexRegistry indexRegistry = _registryCoordinator.indexRegistry();
 
         bytes32[] memory operatorIds = indexRegistry.getOperatorListAtBlockNumber(0, blockNumber);
@@ -137,10 +145,8 @@ contract MiddlewareShim is IMiddlewareShimTypes {
             for (uint256 j = 0; j < quorumBitmapHistoryLength; j++) {
                 bitmapHistory[j] = _registryCoordinator.getQuorumBitmapUpdateByIndex(operatorId, j);
             }
-            operatorBitmapHistory[i] = OperatorBitmapHistoryEntry({
-                operatorId: operatorId,
-                bitmapHistory: bitmapHistory
-            });
+            operatorBitmapHistory[i] =
+                OperatorBitmapHistoryEntry({operatorId: operatorId, bitmapHistory: bitmapHistory});
         }
         return operatorBitmapHistory;
     }

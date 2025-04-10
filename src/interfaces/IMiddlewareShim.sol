@@ -24,7 +24,7 @@ interface IMiddlewareShimTypes is ISlashingRegistryCoordinatorTypes, IBLSApkRegi
 
     struct MiddlewareData {
         uint256 quorumUpdateBlockNumber;
-        OperatorKeys[][] operatorKeys;  // notice: double array because copied from function that was multi-quorum but for practical purposes it's 1d array
+        OperatorKeys[][] operatorKeys; // notice: double array because copied from function that was multi-quorum but for practical purposes it's 1d array
         ApkUpdate[] quorumApkUpdates;
         StakeUpdate[] totalStakeHistory;
         OperatorStakeHistoryEntry[] operatorStakeHistory;

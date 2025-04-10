@@ -1,8 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 
-import {IBLSApkRegistry, IBLSApkRegistryTypes, IBLSApkRegistryErrors} from "@eigenlayer-middleware/interfaces/IBLSApkRegistry.sol";
-import {IStakeRegistry, IStakeRegistryTypes, IStakeRegistryErrors, IDelegationManager} from "@eigenlayer-middleware/interfaces/IStakeRegistry.sol";
+import {
+    IBLSApkRegistry,
+    IBLSApkRegistryTypes,
+    IBLSApkRegistryErrors
+} from "@eigenlayer-middleware/interfaces/IBLSApkRegistry.sol";
+import {
+    IStakeRegistry,
+    IStakeRegistryTypes,
+    IStakeRegistryErrors,
+    IDelegationManager
+} from "@eigenlayer-middleware/interfaces/IStakeRegistry.sol";
 import {IIndexRegistry} from "@eigenlayer-middleware/interfaces/IIndexRegistry.sol";
 import {ISlashingRegistryCoordinatorTypes} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
 import {QuorumBitmapHistoryLib} from "@eigenlayer-middleware/libraries/QuorumBitmapHistoryLib.sol";
@@ -11,7 +20,13 @@ import {IMiddlewareShimTypes} from "./interfaces/IMiddlewareShim.sol";
 
 // I cannot inherit both error interfaces because both of them have an error definition `QuorumAlreadyExists()`
 // TODO: make Ownable
-contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkRegistryTypes, IBLSApkRegistryErrors, IStakeRegistryTypes, IMiddlewareShimTypes {
+contract RegistryCoordinatorMimic is
+    ISlashingRegistryCoordinatorTypes,
+    IBLSApkRegistryTypes,
+    IBLSApkRegistryErrors,
+    IStakeRegistryTypes,
+    IMiddlewareShimTypes
+{
     uint256 internal quorum0UpdateBlockNumber;
     ApkUpdate[] internal quorumApkUpdates;
     StakeUpdate[] internal totalStakeHistory;
@@ -103,11 +118,11 @@ contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkR
     }
 
     // TODO: possible to optimize because we know there is only 1 quorum
-    function getQuorumBitmapAtBlockNumberByIndex(
-        bytes32 operatorId,
-        uint32 blockNumber,
-        uint256 index
-    ) external view returns (uint192) {
+    function getQuorumBitmapAtBlockNumberByIndex(bytes32 operatorId, uint32 blockNumber, uint256 index)
+        external
+        view
+        returns (uint192)
+    {
         return QuorumBitmapHistoryLib.getQuorumBitmapAtBlockNumberByIndex(
             operatorBitmapHistory, operatorId, blockNumber, index
         );
@@ -121,7 +136,7 @@ contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkR
     }
 
     /// @notice mapping from quorum number to the latest block that all quorums were updated all at once
-    function quorumUpdateBlockNumber(uint8 /* quorumNumber */) external view returns (uint256) {
+    function quorumUpdateBlockNumber(uint8 /* quorumNumber */ ) external view returns (uint256) {
         return quorum0UpdateBlockNumber;
     }
 
@@ -133,11 +148,11 @@ contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkR
      * @return The 24-byte APK hash.
      * @dev Called by checkSignatures in BLSSignatureChecker.sol.
      */
-    function getApkHashAtBlockNumberAndIndex(
-        uint8 /* quorumNumber */,
-        uint32 blockNumber,
-        uint256 index
-    ) external view returns (bytes24) {
+    function getApkHashAtBlockNumberAndIndex(uint8, /* quorumNumber */ uint32 blockNumber, uint256 index)
+        external
+        view
+        returns (bytes24)
+    {
         // NOTICE: this line is modified from original implementation because of only 0 quorum
         // ApkUpdate memory quorumApkUpdate = apkHistory[quorumNumber][index];
         ApkUpdate memory quorumApkUpdate = quorumApkUpdates[index];
@@ -149,8 +164,7 @@ contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkR
          */
         require(blockNumber >= quorumApkUpdate.updateBlockNumber, BlockNumberTooRecent());
         require(
-            quorumApkUpdate.nextUpdateBlockNumber == 0
-                || blockNumber < quorumApkUpdate.nextUpdateBlockNumber,
+            quorumApkUpdate.nextUpdateBlockNumber == 0 || blockNumber < quorumApkUpdate.nextUpdateBlockNumber,
             BlockNumberNotLatest()
         );
 
@@ -166,11 +180,11 @@ contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkR
      * @dev Function will revert if `index` is out-of-bounds.
      * @dev Used by the BLSSignatureChecker to get past stakes of signing operators.
      */
-    function getTotalStakeAtBlockNumberFromIndex(
-        uint8 /* quorumNumber */,
-        uint32 blockNumber,
-        uint256 index
-    ) external view returns (uint96) {
+    function getTotalStakeAtBlockNumberFromIndex(uint8, /* quorumNumber */ uint32 blockNumber, uint256 index)
+        external
+        view
+        returns (uint96)
+    {
         // NOTICE: this line is modified from original implementation because of only 0 quorum
         // StakeUpdate memory totalStakeUpdate = totalStakeHistory[quorumNumber][index];
         StakeUpdate memory totalStakeUpdate = totalStakeHistory[index];
@@ -189,7 +203,7 @@ contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkR
      * @dev Used by the BLSSignatureChecker to get past stakes of signing operators.
      */
     function getStakeAtBlockNumberAndIndex(
-        uint8 /* quorumNumber */,
+        uint8, /* quorumNumber */
         uint32 blockNumber,
         bytes32 operatorId,
         uint256 index
@@ -201,16 +215,12 @@ contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkR
         return operatorStakeUpdate.stake;
     }
 
-    
     //--------------------//
     // INTERNAL FUNCTIONS //
     //--------------------//
 
     /// @notice Checks that the `stakeUpdate` was valid at the given `blockNumber`
-    function _validateStakeUpdateAtBlockNumber(
-        StakeUpdate memory stakeUpdate,
-        uint32 blockNumber
-    ) internal pure {
+    function _validateStakeUpdateAtBlockNumber(StakeUpdate memory stakeUpdate, uint32 blockNumber) internal pure {
         /**
          * Check that the update is valid for the given blockNumber:
          * - blockNumber should be >= the update block number
@@ -218,8 +228,7 @@ contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkR
          */
         require(blockNumber >= stakeUpdate.updateBlockNumber, IStakeRegistryErrors.InvalidBlockNumber());
         require(
-            stakeUpdate.nextUpdateBlockNumber == 0
-                || blockNumber < stakeUpdate.nextUpdateBlockNumber,
+            stakeUpdate.nextUpdateBlockNumber == 0 || blockNumber < stakeUpdate.nextUpdateBlockNumber,
             IStakeRegistryErrors.InvalidBlockNumber()
         );
     }
@@ -228,4 +237,3 @@ contract RegistryCoordinatorMimic is ISlashingRegistryCoordinatorTypes, IBLSApkR
         // TODO: implement
     }
 }
-    
