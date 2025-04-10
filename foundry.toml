@@ -7,6 +7,7 @@ libs = ["lib"]
 remappings = [
     "src/=src/",
     "@eigenlayer-middleware/=lib/eigenlayer-middleware/src/",
+    "@eigenlayer-middleware-test/=lib/eigenlayer-middleware/test/",
     "@openzeppelin-utils/=lib/openzeppelin-contracts/contracts/utils/"
 ]
 
