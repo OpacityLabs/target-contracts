@@ -21,7 +21,6 @@ import {IMiddlewareShimTypes} from "./interfaces/IMiddlewareShim.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 // I cannot inherit both error interfaces because both of them have an error definition `QuorumAlreadyExists()`
-// TODO: make Ownable
 contract RegistryCoordinatorMimic is
     Ownable,
     ISlashingRegistryCoordinatorTypes,
@@ -244,6 +243,7 @@ contract RegistryCoordinatorMimic is
     }
 
     function _verifyProof(bytes32 middlewareDataHash, bytes calldata proof) internal {
-        // TODO: implement
+        // Steps:
+        // 1. Parse the proof: (blockNumber, )
     }
 }
