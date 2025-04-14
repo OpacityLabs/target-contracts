@@ -8,7 +8,7 @@ contract SimpleMPTVerificationTest is Test {
     // see script/DeployDummyStorage.s.sol
     address constant COUNTER_ADDRESS_HOLESKY = 0x8dA342Bf25Ea6A930Cd0b08D0Ad09A95C9C2A1FB;
 
-    function setUp() public { }
+    function setUp() public {}
 
     function test_single_slot_proof_verification() public {
         // cast proof 0x8dA342Bf25Ea6A930Cd0b08D0Ad09A95C9C2A1FB 0 --rpc-url https://ethereum-holesky-rpc.publicnode.com
@@ -23,7 +23,7 @@ contract SimpleMPTVerificationTest is Test {
 
     function test_account_proof_verification() public {
         // TODO: Implement this
-        // need to verify the account proof for a given execution state root, 
+        // need to verify the account proof for a given execution state root,
         // and then verify the storage proof is part of the account state
     }
 }
