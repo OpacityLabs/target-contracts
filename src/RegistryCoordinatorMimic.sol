@@ -42,12 +42,12 @@ contract RegistryCoordinatorMimic is
 
         // set the storage array lengths
         {
-        uint256 quorumApkUpdatesLength = middlewareData.quorumApkUpdates.length;
-        uint256 totalStakeHistoryLength = middlewareData.totalStakeHistory.length;
-        assembly {
-            sstore(quorumApkUpdates.slot, quorumApkUpdatesLength)
-            sstore(totalStakeHistory.slot, totalStakeHistoryLength)
-        }
+            uint256 quorumApkUpdatesLength = middlewareData.quorumApkUpdates.length;
+            uint256 totalStakeHistoryLength = middlewareData.totalStakeHistory.length;
+            assembly {
+                sstore(quorumApkUpdates.slot, quorumApkUpdatesLength)
+                sstore(totalStakeHistory.slot, totalStakeHistoryLength)
+            }
         }
 
         quorum0UpdateBlockNumber = middlewareData.quorumUpdateBlockNumber;
@@ -61,26 +61,26 @@ contract RegistryCoordinatorMimic is
             bytes32 operatorId = middlewareData.operatorStakeHistory[i].operatorId;
             StakeUpdate[] memory stakeHistory = middlewareData.operatorStakeHistory[i].stakeHistory;
             uint256 stakeHistoryLength = stakeHistory.length;
-            StakeUpdate[] storage operatorStakeHistory = operatorStakeHistory[operatorId];
+            StakeUpdate[] storage operatorStakeHistoryEntry = operatorStakeHistory[operatorId];
             // set the storage array length
             assembly {
-                sstore(operatorStakeHistory.slot, stakeHistoryLength)
+                sstore(operatorStakeHistoryEntry.slot, stakeHistoryLength)
             }
             for (uint256 j = 0; j < stakeHistoryLength; j++) {
-                operatorStakeHistory[j] = stakeHistory[j];
+                operatorStakeHistoryEntry[j] = stakeHistory[j];
             }
         }
         for (uint256 i = 0; i < middlewareData.operatorBitmapHistory.length; i++) {
             bytes32 operatorId = middlewareData.operatorBitmapHistory[i].operatorId;
             QuorumBitmapUpdate[] memory bitmapHistory = middlewareData.operatorBitmapHistory[i].bitmapHistory;
             uint256 bitmapHistoryLength = bitmapHistory.length;
-            QuorumBitmapUpdate[] storage operatorBitmapHistory = operatorBitmapHistory[operatorId];
+            QuorumBitmapUpdate[] storage operatorBitmapHistoryEntry = operatorBitmapHistory[operatorId];
             // set the storage array length
             assembly {
-                sstore(operatorBitmapHistory.slot, bitmapHistoryLength)
+                sstore(operatorBitmapHistoryEntry.slot, bitmapHistoryLength)
             }
             for (uint256 j = 0; j < bitmapHistoryLength; j++) {
-                operatorBitmapHistory[j] = bitmapHistory[j];
+                operatorBitmapHistoryEntry[j] = bitmapHistory[j];
             }
         }
     }
