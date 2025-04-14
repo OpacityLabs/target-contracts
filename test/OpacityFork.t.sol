@@ -56,6 +56,8 @@ contract OpacityForkTest is Test {
     address constant OPACITY_REGISTRY_COORDINATOR_ADDRESS_HOLESKY = 0x3e43AA225b5cB026C5E8a53f62572b10D526a50B;
     address constant OPACTIY_AVS_ADDRESS_HOLESKY = 0xbfc5d26C6eEb46475eB3960F5373edC5341eE535;
 
+    address registryCoordinatorMimicOwner = makeAddr("registryCoordinatorMimicOwner");
+
     // TODO(chore): I don't really like having these signatures written as static strings
     string constant DEPOSIT_FUNCTION_SIGNATURE = "depositIntoStrategy(address,address,uint256)";
     string constant APPROVE_FUNCTION_SIGNATURE = "approve(address,uint256)";
@@ -174,8 +176,10 @@ contract OpacityForkTest is Test {
         }
 
         // Deploy registry coordinator mimic
+        vm.prank(registryCoordinatorMimicOwner);
         RegistryCoordinatorMimic mimic = new RegistryCoordinatorMimic();
         // TODO: proof verification
+        vm.prank(registryCoordinatorMimicOwner);
         mimic.updateState(middlewareData, "mock proof");
 
         // Deploy another BLSSignatureChecker
