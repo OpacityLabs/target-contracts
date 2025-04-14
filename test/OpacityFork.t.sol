@@ -71,7 +71,6 @@ contract OpacityForkTest is Test {
 
     function setUp() public {}
 
-    // TODO: actually assert stuff about the quorum stakes
     function test_fullFlow() public {
         // setup
         vm.createSelectFork("holesky");
@@ -157,36 +156,58 @@ contract OpacityForkTest is Test {
         }
 
         // Check that the signature passes
+        (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals,) =
+            checker.checkSignatures(messageHash, hex"00", referenceBlockNumber, nonSignerStakesAndSignature);
+        console.log("quorumStakeTotals");
+        console.log(quorumStakeTotals.signedStakeForQuorum[0]);
+        console.log(quorumStakeTotals.totalStakeForQuorum[0]);
+
+        MiddlewareShim.MiddlewareData memory middlewareData;
         // stack-too-deep
         {
-            (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals,) =
-                checker.checkSignatures(messageHash, hex"00", referenceBlockNumber, nonSignerStakesAndSignature);
-            console.log("quorumStakeTotals");
-            console.log(quorumStakeTotals.signedStakeForQuorum[0]);
-            console.log(quorumStakeTotals.totalStakeForQuorum[0]);
+            // Deploy middleware shim
+            MiddlewareShim shim = new MiddlewareShim(registryCoordinator);
+            shim.updateMiddlewareDataHash();
+            console.log("middlewareDataHash");
+            console.logBytes32(shim.middlewareDataHash());
+            middlewareData = shim.getMiddlewareData(registryCoordinator, referenceBlockNumber);
         }
-
-        // Deploy middleware shim
-        MiddlewareShim shim = new MiddlewareShim(registryCoordinator);
-        shim.updateMiddlewareDataHash();
-        console.log("middlewareDataHash");
-        console.logBytes32(shim.middlewareDataHash());
 
         // Deploy registry coordinator mimic
         RegistryCoordinatorMimic mimic = new RegistryCoordinatorMimic();
         // TODO: proof verification
-        mimic.updateState(shim.getMiddlewareData(registryCoordinator, referenceBlockNumber), "mock proof");
+        mimic.updateState(middlewareData, "mock proof");
 
         // Deploy another BLSSignatureChecker
         BLSSignatureChecker checker2 = new BLSSignatureChecker(ISlashingRegistryCoordinator(address(mimic)));
-        // stack-too-deep
-        {
-            (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals2,) =
-                checker2.checkSignatures(messageHash, hex"00", referenceBlockNumber, nonSignerStakesAndSignature);
-            console.log("quorumStakeTotals2");
-            console.log(quorumStakeTotals2.signedStakeForQuorum[0]);
-            console.log(quorumStakeTotals2.totalStakeForQuorum[0]);
-        }
+        (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals2,) =
+            checker2.checkSignatures(messageHash, hex"00", referenceBlockNumber, nonSignerStakesAndSignature);
+        console.log("quorumStakeTotals2");
+        console.log(quorumStakeTotals2.signedStakeForQuorum[0]);
+        console.log(quorumStakeTotals2.totalStakeForQuorum[0]);
+
+        assertEq(quorumStakeTotals.signedStakeForQuorum.length, 1, "Expected 1 quorum");
+        assertEq(quorumStakeTotals.totalStakeForQuorum.length, 1, "Expected 1 quorum");
+        assertEq(
+            quorumStakeTotals.signedStakeForQuorum.length,
+            quorumStakeTotals2.signedStakeForQuorum.length,
+            "Quorum signed stake length mismatch"
+        );
+        assertEq(
+            quorumStakeTotals.totalStakeForQuorum.length,
+            quorumStakeTotals2.totalStakeForQuorum.length,
+            "Quorum total stake length mismatch"
+        );
+        assertEq(
+            quorumStakeTotals.signedStakeForQuorum[0],
+            quorumStakeTotals2.signedStakeForQuorum[0],
+            "Quorum signed stake mismatch"
+        );
+        assertEq(
+            quorumStakeTotals.totalStakeForQuorum[0],
+            quorumStakeTotals2.totalStakeForQuorum[0],
+            "Quorum total stake mismatch"
+        );
     }
 
     function _createOperator(uint256 seed) internal returns (Operator memory) {
