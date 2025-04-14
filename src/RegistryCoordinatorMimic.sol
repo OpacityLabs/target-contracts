@@ -42,12 +42,12 @@ contract RegistryCoordinatorMimic is
 
         // set the storage array lengths
         {
-        uint256 quorumApkUpdatesLength = middlewareData.quorumApkUpdates.length;
-        uint256 totalStakeHistoryLength = middlewareData.totalStakeHistory.length;
-        assembly {
-            sstore(quorumApkUpdates.slot, quorumApkUpdatesLength)
-            sstore(totalStakeHistory.slot, totalStakeHistoryLength)
-        }
+            uint256 quorumApkUpdatesLength = middlewareData.quorumApkUpdates.length;
+            uint256 totalStakeHistoryLength = middlewareData.totalStakeHistory.length;
+            assembly {
+                sstore(quorumApkUpdates.slot, quorumApkUpdatesLength)
+                sstore(totalStakeHistory.slot, totalStakeHistoryLength)
+            }
         }
 
         quorum0UpdateBlockNumber = middlewareData.quorumUpdateBlockNumber;
