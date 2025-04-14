@@ -274,7 +274,7 @@ contract OpacityForkTest is Test {
         });
 
         ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry memory operatorSignature =
-            _newOperatorRegistrationSignature(operator.ecdsaPrivateKey, avs, bytes32(0), block.timestamp + 1 days);
+            _newOperatorRegistrationSignature(operator, avs, bytes32(0), block.timestamp + 1 days);
 
         vm.prank(operator.operator);
         IRegistryCoordinator(address(registryCoordinator)).registerOperator(
@@ -310,16 +310,15 @@ contract OpacityForkTest is Test {
         return sig;
     }
 
-    // TODO: use Operator struct instead of operatorSk?
-    function _newOperatorRegistrationSignature(uint256 operatorSk, address avs, bytes32 salt, uint256 expiry)
+    function _newOperatorRegistrationSignature(Operator memory operator, address avs, bytes32 salt, uint256 expiry)
         internal
         view
         returns (ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry memory)
     {
         bytes32 operatorRegistrationDigestHash = IAVSDirectory(AVS_DIRECTORY_ADDRESS_HOLESKY)
-            .calculateOperatorAVSRegistrationDigestHash(vm.addr(operatorSk), avs, salt, expiry);
+            .calculateOperatorAVSRegistrationDigestHash(operator.operator, avs, salt, expiry);
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(operatorSk, operatorRegistrationDigestHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(operator.ecdsaPrivateKey, operatorRegistrationDigestHash);
         bytes memory signature = abi.encodePacked(r, s, v);
         return ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry({signature: signature, salt: salt, expiry: expiry});
     }
