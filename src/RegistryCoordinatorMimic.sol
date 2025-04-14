@@ -18,9 +18,12 @@ import {QuorumBitmapHistoryLib} from "@eigenlayer-middleware/libraries/QuorumBit
 
 import {IMiddlewareShimTypes} from "./interfaces/IMiddlewareShim.sol";
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
 // I cannot inherit both error interfaces because both of them have an error definition `QuorumAlreadyExists()`
 // TODO: make Ownable
 contract RegistryCoordinatorMimic is
+    Ownable,
     ISlashingRegistryCoordinatorTypes,
     IBLSApkRegistryTypes,
     IBLSApkRegistryErrors,
@@ -36,7 +39,7 @@ contract RegistryCoordinatorMimic is
 
     // I really hope the usage of modifying the storage array lengths through assembly is not a problem for audits
     // TODO: make this incremental (update only the added elements)
-    function updateState(MiddlewareData calldata middlewareData, bytes calldata proof) external {
+    function updateState(MiddlewareData calldata middlewareData, bytes calldata proof) external onlyOwner {
         bytes32 middlewareDataHash = keccak256(abi.encode(middlewareData));
         _verifyProof(middlewareDataHash, proof);
 
