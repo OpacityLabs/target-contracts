@@ -34,21 +34,20 @@ contract RegistryCoordinatorMimic is
     /// @notice maps operator id => historical quorums they registered for
     mapping(bytes32 => QuorumBitmapUpdate[]) internal operatorBitmapHistory;
 
-    // TODO: exteremly naive implementation, review when relevant
+    // I really hope the usage of modifying the storage array lengths through assembly is not a problem for audits
+    // TODO: make this incremental (update only the added elements)
     function updateState(MiddlewareData calldata middlewareData, bytes calldata proof) external {
         bytes32 middlewareDataHash = keccak256(abi.encode(middlewareData));
         _verifyProof(middlewareDataHash, proof);
 
-        // TODO: refactor everything to be mappings with sizes, for now doing it this stupid way just to get it working for tests
-        delete quorumApkUpdates;
-        delete totalStakeHistory;
-        for (uint256 i = 0; i < middlewareData.quorumApkUpdates.length; i++) {
-            ApkUpdate memory empty;
-            quorumApkUpdates.push(empty);
+        // set the storage array lengths
+        {
+        uint256 quorumApkUpdatesLength = middlewareData.quorumApkUpdates.length;
+        uint256 totalStakeHistoryLength = middlewareData.totalStakeHistory.length;
+        assembly {
+            sstore(quorumApkUpdates.slot, quorumApkUpdatesLength)
+            sstore(totalStakeHistory.slot, totalStakeHistoryLength)
         }
-        for (uint256 i = 0; i < middlewareData.totalStakeHistory.length; i++) {
-            StakeUpdate memory empty;
-            totalStakeHistory.push(empty);
         }
 
         quorum0UpdateBlockNumber = middlewareData.quorumUpdateBlockNumber;
@@ -61,19 +60,27 @@ contract RegistryCoordinatorMimic is
         for (uint256 i = 0; i < middlewareData.operatorStakeHistory.length; i++) {
             bytes32 operatorId = middlewareData.operatorStakeHistory[i].operatorId;
             StakeUpdate[] memory stakeHistory = middlewareData.operatorStakeHistory[i].stakeHistory;
-            delete operatorStakeHistory[operatorId];
-            for (uint256 j = 0; j < stakeHistory.length; j++) {
-                // operatorStakeHistory[operatorId][j] = stakeHistory[j];
-                operatorStakeHistory[operatorId].push(stakeHistory[j]);
+            uint256 stakeHistoryLength = stakeHistory.length;
+            StakeUpdate[] storage operatorStakeHistory = operatorStakeHistory[operatorId];
+            // set the storage array length
+            assembly {
+                sstore(operatorStakeHistory.slot, stakeHistoryLength)
+            }
+            for (uint256 j = 0; j < stakeHistoryLength; j++) {
+                operatorStakeHistory[j] = stakeHistory[j];
             }
         }
         for (uint256 i = 0; i < middlewareData.operatorBitmapHistory.length; i++) {
             bytes32 operatorId = middlewareData.operatorBitmapHistory[i].operatorId;
             QuorumBitmapUpdate[] memory bitmapHistory = middlewareData.operatorBitmapHistory[i].bitmapHistory;
-            delete operatorBitmapHistory[operatorId];
-            for (uint256 j = 0; j < bitmapHistory.length; j++) {
-                // operatorBitmapHistory[operatorId][j] = bitmapHistory[j];
-                operatorBitmapHistory[operatorId].push(bitmapHistory[j]);
+            uint256 bitmapHistoryLength = bitmapHistory.length;
+            QuorumBitmapUpdate[] storage operatorBitmapHistory = operatorBitmapHistory[operatorId];
+            // set the storage array length
+            assembly {
+                sstore(operatorBitmapHistory.slot, bitmapHistoryLength)
+            }
+            for (uint256 j = 0; j < bitmapHistoryLength; j++) {
+                operatorBitmapHistory[j] = bitmapHistory[j];
             }
         }
     }
