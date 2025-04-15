@@ -23,36 +23,49 @@ contract SimpleMPTVerificationTest is Test {
         assertEq(val, SecureMerkleTrie.get(key, proof, storageHash));
     }
 
+    struct AccountClaimed {
+        uint256 nonce;
+        uint256 balance;
+        bytes32 storageHash;
+        bytes32 codeHash;
+    }
+
     function test_account_proof_verification() public {
         // to compute the proof again:
         // cast proof -B 3575746 0x8dA342Bf25Ea6A930Cd0b08D0Ad09A95C9C2A1FB 0 --rpc-url https://ethereum-holesky-rpc.publicnode.com
-
+        // ------------------------------------------------------------
         // execution state root of block 3675746
         // keccak256(proof[0]) == executionStateRoot
+        // ------------------------------------------------------------
         bytes32 executionStateRoot = 0xd8a47a715c1617711ccfc19aef862fb73d5e113927f11a53b14a89d3528000c7;
 
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/test/fixtures/counterProof_3675746.json");
         string memory json = vm.readFile(path);
         address counterContract = stdJson.readAddress(json, ".address");
-        uint256 nonce = stdJson.readUint(json, ".nonce");
-        uint256 balance = stdJson.readUint(json, ".balance");
-        bytes32 storageHash = stdJson.readBytes32(json, ".storageHash");
-        bytes32 codeHash = stdJson.readBytes32(json, ".codeHash");
+        AccountClaimed memory accountClaimed = AccountClaimed({
+            nonce: stdJson.readUint(json, ".nonce"),
+            balance: stdJson.readUint(json, ".balance"),
+            storageHash: stdJson.readBytes32(json, ".storageHash"),
+            codeHash: stdJson.readBytes32(json, ".codeHash")
+        });
         bytes[] memory proof = stdJson.readBytesArray(json, ".accountProof");
         bytes memory key = abi.encodePacked(counterContract);
 
-        // code for computing value in tree
+        // reference code for computing value in tree (account_proof.go)
+        // ------------------------------------------------------------
         // accountClaimed := []any{uint64(res.Nonce), res.Balance.ToInt().Bytes(), res.StorageHash, res.CodeHash}
         // accountClaimedValue, err := rlp.EncodeToBytes(accountClaimed)
-        bytes memory val = RLPWriter.writeBytes(abi.encodePacked(nonce, balance, storageHash, codeHash));
+        // ------------------------------------------------------------
+        bytes[] memory listItems = new bytes[](4);
+        listItems[0] = RLPWriter.writeUint(accountClaimed.nonce);
+        listItems[1] = RLPWriter.writeUint(accountClaimed.balance);
+        listItems[2] = RLPWriter.writeBytes(abi.encodePacked(accountClaimed.storageHash));
+        listItems[3] = RLPWriter.writeBytes(abi.encodePacked(accountClaimed.codeHash));
+        bytes memory val = RLPWriter.writeList(listItems);
 
         bytes memory result = SecureMerkleTrie.get(key, proof, executionStateRoot);
 
-        // console.log("result");
-        // console.logBytes(result);
-        // console.log("expected");
-        // console.logBytes(val);
-        // assertEq(val, result);
+        assertEq(val, result);
     }
 }
