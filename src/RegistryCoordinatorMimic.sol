@@ -15,10 +15,11 @@ import {
 import {IIndexRegistry} from "@eigenlayer-middleware/interfaces/IIndexRegistry.sol";
 import {ISlashingRegistryCoordinatorTypes} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
 import {QuorumBitmapHistoryLib} from "@eigenlayer-middleware/libraries/QuorumBitmapHistoryLib.sol";
-
 import {IMiddlewareShimTypes} from "./interfaces/IMiddlewareShim.sol";
-
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {SP1Helios} from "@sp1-helios/SP1Helios.sol";
+import {SecureMerkleTrie} from "@optimism/libraries/trie/SecureMerkleTrie.sol";
+import {RLPWriter} from "@optimism/libraries/rlp/RLPWriter.sol";
 
 // I cannot inherit both error interfaces because both of them have an error definition `QuorumAlreadyExists()`
 contract RegistryCoordinatorMimic is
@@ -29,6 +30,21 @@ contract RegistryCoordinatorMimic is
     IStakeRegistryTypes,
     IMiddlewareShimTypes
 {
+    struct AccountProof {
+        uint256 nonce;
+        uint256 balance;
+        bytes32 storageHash;
+        bytes32 codeHash; // TODO: review when relevant: can theoretically be hard-coded
+        bytes[] accoutProof;
+    }
+
+    uint256 public constant MIDDLEWARE_DATA_HASH_SLOT = 0;
+
+    SP1Helios public immutable LITE_CLIENT;
+    address public immutable MIDDLEWARE_SHIM;
+
+    uint256 public lastBlockNumber;
+
     uint256 internal quorum0UpdateBlockNumber;
     ApkUpdate[] internal quorumApkUpdates;
     StakeUpdate[] internal totalStakeHistory;
@@ -36,11 +52,16 @@ contract RegistryCoordinatorMimic is
     /// @notice maps operator id => historical quorums they registered for
     mapping(bytes32 => QuorumBitmapUpdate[]) internal operatorBitmapHistory;
 
+    constructor(SP1Helios _liteClient, address _middlewareShim) Ownable() {
+        LITE_CLIENT = _liteClient;
+        MIDDLEWARE_SHIM = _middlewareShim;
+    }
+
     // I really hope the usage of modifying the storage array lengths through assembly is not a problem for audits
     // TODO: make this incremental (update only the added elements)
     function updateState(MiddlewareData calldata middlewareData, bytes calldata proof) external onlyOwner {
         bytes32 middlewareDataHash = keccak256(abi.encode(middlewareData));
-        _verifyProof(middlewareDataHash, proof);
+        _verifyProof(middlewareDataHash, middlewareData.blockNumber, proof);
 
         // set the storage array lengths
         {
@@ -242,8 +263,37 @@ contract RegistryCoordinatorMimic is
         );
     }
 
-    function _verifyProof(bytes32 middlewareDataHash, bytes calldata proof) internal {
-        // Steps:
-        // 1. Parse the proof: (blockNumber, )
+    // I hate making this function virtual but I need to do so I can mock it in tests
+    function _verifyProof(bytes32 middlewareDataHash, uint256 blockNumber, bytes calldata proof) internal virtual {
+        (AccountProof memory accountProof, bytes[] memory storageProof) = abi.decode(proof, (AccountProof, bytes[]));
+        require(blockNumber > lastBlockNumber, BlockNumberTooOld());
+        require(blockNumber <= LITE_CLIENT.head(), BlockNumberTooNew());
+
+        // verify the storage proof
+        bytes memory key = abi.encode(MIDDLEWARE_DATA_HASH_SLOT);
+        bytes memory value = abi.encodePacked(middlewareDataHash);
+        bool valid = SecureMerkleTrie.verifyInclusionProof(key, value, storageProof, accountProof.storageHash);
+        require(valid, StorageProofVerificationFailed());
+
+        // verify the account proof
+        bytes32 executionStateRoot = LITE_CLIENT.executionStateRoots(blockNumber);
+        key = abi.encodePacked(MIDDLEWARE_SHIM);
+        value = _computeAccountProofValue(accountProof);
+        valid = SecureMerkleTrie.verifyInclusionProof(key, value, storageProof, executionStateRoot);
+        require(valid, AccountProofVerificationFailed());
     }
+
+    function _computeAccountProofValue(AccountProof memory accountProof) internal pure returns (bytes memory) {
+        bytes[] memory listItems = new bytes[](4);
+        listItems[0] = RLPWriter.writeUint(accountProof.nonce);
+        listItems[1] = RLPWriter.writeUint(accountProof.balance);
+        listItems[2] = RLPWriter.writeBytes(abi.encodePacked(accountProof.storageHash));
+        listItems[3] = RLPWriter.writeBytes(abi.encodePacked(accountProof.codeHash));
+        return RLPWriter.writeList(listItems);
+    }
+
+    error BlockNumberTooOld();
+    error BlockNumberTooNew();
+    error StorageProofVerificationFailed();
+    error AccountProofVerificationFailed();
 }

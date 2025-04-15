@@ -17,8 +17,8 @@ import {Strings} from "@openzeppelin-utils/Strings.sol";
 
 import {BN256G2} from "src/libraries/BN256G2.sol";
 import {MiddlewareShim} from "src/MiddlewareShim.sol";
-import {RegistryCoordinatorMimic} from "src/RegistryCoordinatorMimic.sol";
-
+import {RegistryCoordinatorMimicHarness} from "test/harness/RegistryCoordinatorMimicHarness.sol";
+import {SP1Helios} from "@sp1-helios/SP1Helios.sol";
 // Mainnet
 // DELEGATION_MANAGER_ADDRESS=0x39053D51B77DC0d36036Fc1fCc8Cb819df8Ef37A
 // Holesky
@@ -73,7 +73,7 @@ contract OpacityForkTest is Test {
 
     function setUp() public {}
 
-    function test_fullFlow() public {
+    function test_fullFlow_mockProofVerification() public {
         // setup
         vm.createSelectFork("holesky");
         ISlashingRegistryCoordinator registryCoordinator =
@@ -164,21 +164,19 @@ contract OpacityForkTest is Test {
         console.log(quorumStakeTotals.signedStakeForQuorum[0]);
         console.log(quorumStakeTotals.totalStakeForQuorum[0]);
 
-        MiddlewareShim.MiddlewareData memory middlewareData;
-        // stack-too-deep
-        {
-            // Deploy middleware shim
-            MiddlewareShim shim = new MiddlewareShim(registryCoordinator);
-            shim.updateMiddlewareDataHash();
-            console.log("middlewareDataHash");
-            console.logBytes32(shim.middlewareDataHash());
-            middlewareData = shim.getMiddlewareData(registryCoordinator, referenceBlockNumber);
-        }
+        // Deploy middleware shim
+        MiddlewareShim shim = new MiddlewareShim(registryCoordinator);
+        shim.updateMiddlewareDataHash();
+        console.log("middlewareDataHash");
+        console.logBytes32(shim.middlewareDataHash());
+        MiddlewareShim.MiddlewareData memory middlewareData =
+            shim.getMiddlewareData(registryCoordinator, referenceBlockNumber);
 
         // Deploy registry coordinator mimic
         vm.prank(registryCoordinatorMimicOwner);
-        RegistryCoordinatorMimic mimic = new RegistryCoordinatorMimic();
-        // TODO: proof verification
+        RegistryCoordinatorMimicHarness mimic =
+            new RegistryCoordinatorMimicHarness(SP1Helios(makeAddr("SP1Helios")), address(shim));
+        mimic.harness_setMockVerifyProof(true);
         vm.prank(registryCoordinatorMimicOwner);
         mimic.updateState(middlewareData, "mock proof");
 

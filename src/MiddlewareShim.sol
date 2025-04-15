@@ -30,6 +30,7 @@ contract MiddlewareShim is IMiddlewareShimTypes {
         returns (MiddlewareData memory)
     {
         return MiddlewareData({
+            blockNumber: blockNumber,
             quorumUpdateBlockNumber: _registryCoordinator.quorumUpdateBlockNumber(0),
             operatorKeys: getOperatorKeys(_registryCoordinator, hex"00", blockNumber),
             quorumApkUpdates: _getQuorumApkUpdates(_registryCoordinator),
