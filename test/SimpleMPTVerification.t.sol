@@ -58,7 +58,7 @@ contract SimpleMPTVerificationTest is Test {
         // accountClaimedValue, err := rlp.EncodeToBytes(accountClaimed)
         // ------------------------------------------------------------
         bytes[] memory listItems = new bytes[](4);
-        listItems[0] = RLPWriter.writeUint(accountClaimed.nonce);  // TODO: it's supposed to be RLPWriter.writeUint64(nonce)
+        listItems[0] = RLPWriter.writeUint(accountClaimed.nonce);
         listItems[1] = RLPWriter.writeUint(accountClaimed.balance);
         listItems[2] = RLPWriter.writeBytes(abi.encodePacked(accountClaimed.storageHash));
         listItems[3] = RLPWriter.writeBytes(abi.encodePacked(accountClaimed.codeHash));
