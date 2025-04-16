@@ -235,7 +235,11 @@ contract OpacityForkTest is Test {
         RegistryCoordinatorMimic mimic = new RegistryCoordinatorMimic(SP1Helios(makeAddr("SP1Helios")), address(shim));
 
         vm.expectCall(makeAddr("SP1Helios"), abi.encodeWithSignature("head()"));
-        vm.mockCall( makeAddr("SP1Helios"), abi.encodeWithSignature("head()"), abi.encode(MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER));
+        vm.mockCall(
+            makeAddr("SP1Helios"),
+            abi.encodeWithSignature("head()"),
+            abi.encode(MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER)
+        );
 
         bytes32 middlewareDataHash = keccak256(abi.encode(middlewareData));
         console.log("middlewareDataHash");
