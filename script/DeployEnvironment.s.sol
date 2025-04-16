@@ -25,11 +25,7 @@ contract DeployEnvironment is Script {
             new RegistryCoordinatorMimic(SP1Helios(address(0)), address(middlewareShim));
         console.log("RegistryCoordinatorMimic deployed at:", address(registryCoordinatorMimic));
 
-        MiddlewareShim.MiddlewareData memory middlewareData = middlewareShim.updateMiddlewareDataHash();
-        console.log("MiddlewareData update block number:", middlewareData.blockNumber);
-        // // I'm only storing the block number because serializing the getMiddlewareData() output is a pain
-        // string memory json = string.concat("{\"blockNumber\": ", Strings.toString(middlewareData.blockNumber), "}");
-        // vm.writeJson(json, "middlewareData.json");
+        middlewareShim.updateMiddlewareDataHash();
 
         vm.stopBroadcast();
     }
