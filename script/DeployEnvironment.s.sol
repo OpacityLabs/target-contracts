@@ -17,10 +17,12 @@ contract DeployEnvironment is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        MiddlewareShim middlewareShim = new MiddlewareShim(ISlashingRegistryCoordinator(OPACITY_REGISTRY_COORDINATOR_ADDRESS_HOLESKY));
+        MiddlewareShim middlewareShim =
+            new MiddlewareShim(ISlashingRegistryCoordinator(OPACITY_REGISTRY_COORDINATOR_ADDRESS_HOLESKY));
         console.log("MiddlewareShim deployed at:", address(middlewareShim));
 
-        RegistryCoordinatorMimic registryCoordinatorMimic = new RegistryCoordinatorMimic(SP1Helios(address(0)), address(middlewareShim));
+        RegistryCoordinatorMimic registryCoordinatorMimic =
+            new RegistryCoordinatorMimic(SP1Helios(address(0)), address(middlewareShim));
         console.log("RegistryCoordinatorMimic deployed at:", address(registryCoordinatorMimic));
 
         MiddlewareShim.MiddlewareData memory middlewareData = middlewareShim.updateMiddlewareDataHash();

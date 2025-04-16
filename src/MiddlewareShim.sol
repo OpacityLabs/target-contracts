@@ -18,7 +18,7 @@ contract MiddlewareShim is IMiddlewareShimTypes {
         registryCoordinator = _registryCoordinator;
     }
 
-    // TODO: should there be access control here? 
+    // TODO: should there be access control here?
     // I sense a mild possibility of grifting due to asynchrones behavior of the diferent processes (lite client, shim, mimic)
     // Though I don't have anything yet
     function updateMiddlewareDataHash() external returns (MiddlewareData memory) {
@@ -37,7 +37,7 @@ contract MiddlewareShim is IMiddlewareShimTypes {
             blockNumber: blockNumber,
             quorumUpdateBlockNumber: _registryCoordinator.quorumUpdateBlockNumber(0),
             operatorKeys: getOperatorKeys(_registryCoordinator, hex"00", blockNumber),
-            quorumApkUpdates: _getQuorumApkUpdates(_registryCoordinator),  // TODO: make take blockNumber
+            quorumApkUpdates: _getQuorumApkUpdates(_registryCoordinator), // TODO: make take blockNumber
             totalStakeHistory: _getTotalStakeHistory(_registryCoordinator), // TODO: make take blockNumber
             operatorStakeHistory: _getOperatorStakeHistoryOfQuorum(_registryCoordinator, blockNumber),
             operatorBitmapHistory: _getOperatorBitmapHistory(_registryCoordinator, blockNumber)
