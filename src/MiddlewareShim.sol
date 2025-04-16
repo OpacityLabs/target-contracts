@@ -21,11 +21,10 @@ contract MiddlewareShim is IMiddlewareShimTypes {
     // TODO: should there be access control here?
     // I sense a mild possibility of grifting due to asynchrones behavior of the diferent processes (lite client, shim, mimic)
     // Though I don't have anything yet
-    function updateMiddlewareDataHash() external returns (MiddlewareData memory) {
+    function updateMiddlewareDataHash() external {
         // assume there is only one quorum 0
         MiddlewareData memory middlewareData = getMiddlewareData(registryCoordinator, uint32(block.number));
         middlewareDataHash = keccak256(abi.encode(middlewareData));
-        return middlewareData;
     }
 
     function getMiddlewareData(ISlashingRegistryCoordinator _registryCoordinator, uint32 blockNumber)
