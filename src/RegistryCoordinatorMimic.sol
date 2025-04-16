@@ -20,7 +20,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SP1Helios} from "@sp1-helios/SP1Helios.sol";
 import {SecureMerkleTrie} from "@optimism/libraries/trie/SecureMerkleTrie.sol";
 import {RLPWriter} from "@optimism/libraries/rlp/RLPWriter.sol";
-
+import {RLPReader} from "@optimism/libraries/rlp/RLPReader.sol";
 // TODO: QuorumBitmapHistoryLib is an external library, we don't want to deploy it so we either need to link it or create a library that just has the internal functions
 
 // I cannot inherit both error interfaces because both of them have an error definition `QuorumAlreadyExists()`
@@ -274,15 +274,20 @@ contract RegistryCoordinatorMimic is
         // verify the storage proof
         bytes memory key = abi.encode(MIDDLEWARE_DATA_HASH_SLOT);
         bytes memory value = abi.encodePacked(middlewareDataHash);
-        bool valid = SecureMerkleTrie.verifyInclusionProof(key, value, storageProof, accountProof.storageHash);
-        require(valid, StorageProofVerificationFailed());
+        // NOTICE: storage values in proofs of eth_getProof are RLP encoded
+        // https://www.quicknode.com/docs/ethereum/eth_getProof
+        // TODO: This burned me a lot of time - this needs to be heavily tested
+        bytes memory result = SecureMerkleTrie.get(key, storageProof, accountProof.storageHash);
+        result = RLPReader.readBytes(result);
+        require(keccak256(abi.encodePacked(result)) == keccak256(abi.encodePacked(value)), StorageProofVerificationFailed());
 
         // verify the account proof
         bytes32 executionStateRoot = LITE_CLIENT.executionStateRoots(blockNumber);
         key = abi.encodePacked(MIDDLEWARE_SHIM);
         value = _computeAccountProofValue(accountProof);
-        valid = SecureMerkleTrie.verifyInclusionProof(key, value, storageProof, executionStateRoot);
-        require(valid, AccountProofVerificationFailed());
+        result = SecureMerkleTrie.get(key, storageProof, executionStateRoot);
+        result = RLPReader.readBytes(result);
+        require(keccak256(abi.encodePacked(result)) == keccak256(abi.encodePacked(value)), AccountProofVerificationFailed());
     }
 
     function _computeAccountProofValue(AccountProof memory accountProof) internal pure returns (bytes memory) {
