@@ -5,8 +5,6 @@ libs = ["lib"]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
 remappings = [
-    "src/=src/",
-    "test/=test/",
     "@eigenlayer-middleware/=lib/eigenlayer-middleware/src/",
     "@openzeppelin-utils/=lib/openzeppelin-contracts/contracts/utils/",
     "@sp1-helios/=lib/sp1-helios/contracts/src/",

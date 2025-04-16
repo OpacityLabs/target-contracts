@@ -15,9 +15,9 @@ import {OperatorStateRetriever} from "@eigenlayer-middleware/OperatorStateRetrie
 import {BN254} from "@eigenlayer-middleware/libraries/BN254.sol";
 import {Strings} from "@openzeppelin-utils/Strings.sol";
 
-import {BN256G2} from "src/libraries/BN256G2.sol";
-import {MiddlewareShim} from "src/MiddlewareShim.sol";
-import {RegistryCoordinatorMimicHarness} from "test/harness/RegistryCoordinatorMimicHarness.sol";
+import {BN256G2} from "../src/libraries/BN256G2.sol";
+import {MiddlewareShim} from "../src/MiddlewareShim.sol";
+import {RegistryCoordinatorMimicHarness} from "./harness/RegistryCoordinatorMimicHarness.sol";
 import {SP1Helios} from "@sp1-helios/SP1Helios.sol";
 // Mainnet
 // DELEGATION_MANAGER_ADDRESS=0x39053D51B77DC0d36036Fc1fCc8Cb819df8Ef37A
