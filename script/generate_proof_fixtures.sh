@@ -11,7 +11,7 @@ MIDDLEWARE_SHIM=$2
 
 # Get the directory this script is in
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DEFAULT_OUTPUT_FILE="${SCRIPT_DIR}/mpt_${BLOCK_NUMBER}.json"
+DEFAULT_OUTPUT_FILE="${SCRIPT_DIR}/middlewareShimProof_${BLOCK_NUMBER}.json"
 OUTPUT_FILE=${OUTPUT_FILE:-"$DEFAULT_OUTPUT_FILE"}
 RPC_URL=${RPC_URL:-"https://ethereum-holesky.publicnode.com"}
 

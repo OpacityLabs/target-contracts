@@ -17,8 +17,10 @@ import {Strings} from "@openzeppelin-utils/Strings.sol";
 
 import {BN256G2} from "../src/libraries/BN256G2.sol";
 import {MiddlewareShim} from "../src/MiddlewareShim.sol";
+import {RegistryCoordinatorMimic} from "../src/RegistryCoordinatorMimic.sol";
 import {RegistryCoordinatorMimicHarness} from "./harness/RegistryCoordinatorMimicHarness.sol";
 import {SP1Helios} from "@sp1-helios/SP1Helios.sol";
+import {stdJson} from "forge-std/StdJson.sol";
 // Mainnet
 // DELEGATION_MANAGER_ADDRESS=0x39053D51B77DC0d36036Fc1fCc8Cb819df8Ef37A
 // Holesky
@@ -55,6 +57,11 @@ contract OpacityForkTest is Test {
     // Opacity middleware contracts
     address constant OPACITY_REGISTRY_COORDINATOR_ADDRESS_HOLESKY = 0x3e43AA225b5cB026C5E8a53f62572b10D526a50B;
     address constant OPACTIY_AVS_ADDRESS_HOLESKY = 0xbfc5d26C6eEb46475eB3960F5373edC5341eE535;
+
+    // tx: 0xefc0383920f5b2127b84b44655197a2d4c385dc7baa11f8a5d88f84e7f61d100
+    // This version of the contract uses block.number - 1, the transaction is at block number 3681761, so the blocknumber in the middleware data is 3681760
+    uint256 constant MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER = 3681760;
+    address constant MIDDLEWARE_SHIM_ADDRESS_HOLESKY = 0xaA8B9E35ccCcFf56A738d0C55569968Cf1C588A1;
 
     address registryCoordinatorMimicOwner = makeAddr("registryCoordinatorMimicOwner");
 
@@ -212,6 +219,36 @@ contract OpacityForkTest is Test {
         );
     }
 
+    function test_realProofVerification() public {
+        // setup
+        vm.createSelectFork("holesky");
+        ISlashingRegistryCoordinator registryCoordinator =
+            ISlashingRegistryCoordinator(OPACITY_REGISTRY_COORDINATOR_ADDRESS_HOLESKY);
+
+        MiddlewareShim shim = MiddlewareShim(MIDDLEWARE_SHIM_ADDRESS_HOLESKY);
+        // NOTICE: if QuorumApkUpdates or TotalStakeHistory is updated this breaks since `getMiddlewareData()` does not cut histories yet
+        MiddlewareShim.MiddlewareData memory middlewareData =
+            shim.getMiddlewareData(registryCoordinator, uint32(MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER));
+
+        bytes memory proof = _constructMiddlewareShimProof();
+        vm.prank(registryCoordinatorMimicOwner);
+        RegistryCoordinatorMimic mimic = new RegistryCoordinatorMimic(SP1Helios(makeAddr("SP1Helios")), address(shim));
+
+        vm.expectCall(makeAddr("SP1Helios"), abi.encodeWithSignature("head()"));
+        vm.mockCall(
+            makeAddr("SP1Helios"),
+            abi.encodeWithSignature("head()"),
+            abi.encode(MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER)
+        );
+
+        bytes32 middlewareDataHash = keccak256(abi.encode(middlewareData));
+        console.log("middlewareDataHash");
+        console.logBytes32(middlewareDataHash);
+
+        vm.prank(registryCoordinatorMimicOwner);
+        mimic.updateState(middlewareData, proof);
+    }
+
     function _createOperator(uint256 seed) internal returns (Operator memory) {
         string memory operatorName = string.concat("Operator ", Strings.toString(seed));
         StdCheats.Account memory account = makeAccount(operatorName);
@@ -319,6 +356,23 @@ contract OpacityForkTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(operator.ecdsaPrivateKey, operatorRegistrationDigestHash);
         bytes memory signature = abi.encodePacked(r, s, v);
         return ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry({signature: signature, salt: salt, expiry: expiry});
+    }
+
+    function _constructMiddlewareShimProof() internal returns (bytes memory) {
+        string memory root = vm.projectRoot();
+        string memory path = string.concat(root, "/test/fixtures/middlewareShimProof_3681762.json");
+        string memory json = vm.readFile(path);
+        RegistryCoordinatorMimic.AccountProof memory accountProof;
+        accountProof.nonce = 1;
+        accountProof.balance = 0;
+        accountProof.storageHash = stdJson.readBytes32(json, ".storageHash");
+        accountProof.codeHash = stdJson.readBytes32(json, ".codeHash");
+        accountProof.accoutProof = stdJson.readBytesArray(json, ".accountProof");
+
+        bytes[] memory storageProof;
+        storageProof = stdJson.readBytesArray(json, ".storageProof[0].proof");
+
+        return abi.encode(accountProof, storageProof);
     }
 }
 

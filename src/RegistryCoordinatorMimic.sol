@@ -279,7 +279,9 @@ contract RegistryCoordinatorMimic is
         // TODO: This burned me a lot of time - this needs to be heavily tested
         bytes memory result = SecureMerkleTrie.get(key, storageProof, accountProof.storageHash);
         result = RLPReader.readBytes(result);
-        require(keccak256(abi.encodePacked(result)) == keccak256(abi.encodePacked(value)), StorageProofVerificationFailed());
+        require(
+            keccak256(abi.encodePacked(result)) == keccak256(abi.encodePacked(value)), StorageProofVerificationFailed()
+        );
 
         // verify the account proof
         bytes32 executionStateRoot = LITE_CLIENT.executionStateRoots(blockNumber);
@@ -287,7 +289,9 @@ contract RegistryCoordinatorMimic is
         value = _computeAccountProofValue(accountProof);
         result = SecureMerkleTrie.get(key, storageProof, executionStateRoot);
         result = RLPReader.readBytes(result);
-        require(keccak256(abi.encodePacked(result)) == keccak256(abi.encodePacked(value)), AccountProofVerificationFailed());
+        require(
+            keccak256(abi.encodePacked(result)) == keccak256(abi.encodePacked(value)), AccountProofVerificationFailed()
+        );
     }
 
     function _computeAccountProofValue(AccountProof memory accountProof) internal pure returns (bytes memory) {
