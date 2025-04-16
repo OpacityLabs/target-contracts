@@ -18,8 +18,15 @@ contract MiddlewareShim is IMiddlewareShimTypes {
         registryCoordinator = _registryCoordinator;
     }
 
+    // TODO: should there be access control here? 
+    // I sense a mild possibility of grifting due to asynchrones behavior of the diferent processes (lite client, shim, mimic)
+    // Thought I don't have anything yet
     function updateMiddlewareDataHash() external {
         // assume there is only one quorum 0
+        // REVIEW: I'm not actually convinced that you have to do block.number - 1 here
+        // The original rational is that you can't do a state proof over the storage slot in the block that has the transaction modifying the storage,
+        // But this shim contract is agnostic to the whole proof stuff: Why can't it query an EigenLayer middleware at the current executing block?
+        // Need to review this more critically
         MiddlewareData memory middlewareData = getMiddlewareData(registryCoordinator, uint32(block.number - 1));
         middlewareDataHash = keccak256(abi.encode(middlewareData));
     }
@@ -33,8 +40,8 @@ contract MiddlewareShim is IMiddlewareShimTypes {
             blockNumber: blockNumber,
             quorumUpdateBlockNumber: _registryCoordinator.quorumUpdateBlockNumber(0),
             operatorKeys: getOperatorKeys(_registryCoordinator, hex"00", blockNumber),
-            quorumApkUpdates: _getQuorumApkUpdates(_registryCoordinator),
-            totalStakeHistory: _getTotalStakeHistory(_registryCoordinator),
+            quorumApkUpdates: _getQuorumApkUpdates(_registryCoordinator),  // TODO: make take blockNumber
+            totalStakeHistory: _getTotalStakeHistory(_registryCoordinator), // TODO: make take blockNumber
             operatorStakeHistory: _getOperatorStakeHistoryOfQuorum(_registryCoordinator, blockNumber),
             operatorBitmapHistory: _getOperatorBitmapHistory(_registryCoordinator, blockNumber)
         });
