@@ -19,9 +19,9 @@ import {IMiddlewareShimTypes} from "./interfaces/IMiddlewareShim.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SP1Helios} from "@sp1-helios/SP1Helios.sol";
 import {SecureMerkleTrie} from "@optimism/libraries/trie/SecureMerkleTrie.sol";
-import {RLPWriter} from "@optimism/libraries/rlp/RLPWriter.sol";
 import {RLPReader} from "@optimism/libraries/rlp/RLPReader.sol";
 // TODO: QuorumBitmapHistoryLib is an external library, we don't want to deploy it so we either need to link it or create a library that just has the internal functions
+// Considering this contract is already bloated, it may be better to just link it
 
 // I cannot inherit both error interfaces because both of them have an error definition `QuorumAlreadyExists()`
 contract RegistryCoordinatorMimic is
@@ -32,12 +32,10 @@ contract RegistryCoordinatorMimic is
     IStakeRegistryTypes,
     IMiddlewareShimTypes
 {
-    struct AccountProof {
-        uint256 nonce;
-        uint256 balance;
+    struct StateUpdateProof {
         bytes32 storageHash;
-        bytes32 codeHash; // TODO: review when relevant: can theoretically be hard-coded
-        bytes[] accoutProof;
+        bytes[] storageProof;
+        bytes[] accountProof;
     }
 
     uint256 public constant MIDDLEWARE_DATA_HASH_SLOT = 0;
@@ -267,7 +265,7 @@ contract RegistryCoordinatorMimic is
 
     // I hate making this function virtual but I need to do so I can mock it in tests
     function _verifyProof(bytes32 middlewareDataHash, uint256 blockNumber, bytes calldata proof) internal virtual {
-        (AccountProof memory accountProof, bytes[] memory storageProof) = abi.decode(proof, (AccountProof, bytes[]));
+        (StateUpdateProof memory stateUpdateProof) = abi.decode(proof, (StateUpdateProof));
         require(blockNumber > lastBlockNumber, BlockNumberTooOld());
         require(blockNumber <= LITE_CLIENT.head(), BlockNumberTooNew());
 
@@ -277,7 +275,7 @@ contract RegistryCoordinatorMimic is
         // NOTICE: storage values in proofs of eth_getProof are RLP encoded
         // https://www.quicknode.com/docs/ethereum/eth_getProof
         // TODO: This burned me a lot of time - this needs to be heavily tested
-        bytes memory result = SecureMerkleTrie.get(key, storageProof, accountProof.storageHash);
+        bytes memory result = SecureMerkleTrie.get(key, stateUpdateProof.storageProof, stateUpdateProof.storageHash);
         result = RLPReader.readBytes(result);
         require(
             keccak256(abi.encodePacked(result)) == keccak256(abi.encodePacked(value)), StorageProofVerificationFailed()
@@ -286,25 +284,20 @@ contract RegistryCoordinatorMimic is
         // verify the account proof
         bytes32 executionStateRoot = LITE_CLIENT.executionStateRoots(blockNumber);
         key = abi.encodePacked(MIDDLEWARE_SHIM);
-        value = _computeAccountProofValue(accountProof);
         // result is RLP encoded list of [nonce, balance, storageHash, codeHash]
-        result = SecureMerkleTrie.get(key, accountProof.accoutProof, executionStateRoot);
+        result = SecureMerkleTrie.get(key, stateUpdateProof.accountProof, executionStateRoot);
+        RLPReader.RLPItem[] memory resultItems = RLPReader.readList(result); 
+        require(resultItems.length == 4, InvalidAccountProofLeafNode());
+        // REVIEW: I'm 99% sure it's sound to just check the storageHash and ignore the rest, but a second eye is needed
+        bytes memory storageHash = RLPReader.readBytes(resultItems[2]);
         require(
-            keccak256(abi.encodePacked(result)) == keccak256(abi.encodePacked(value)), AccountProofVerificationFailed()
+            keccak256(storageHash) == keccak256(abi.encodePacked(stateUpdateProof.storageHash)), AccountProofVerificationFailed()
         );
-    }
-
-    function _computeAccountProofValue(AccountProof memory accountProof) internal pure returns (bytes memory) {
-        bytes[] memory listItems = new bytes[](4);
-        listItems[0] = RLPWriter.writeUint(accountProof.nonce);
-        listItems[1] = RLPWriter.writeUint(accountProof.balance);
-        listItems[2] = RLPWriter.writeBytes(abi.encodePacked(accountProof.storageHash));
-        listItems[3] = RLPWriter.writeBytes(abi.encodePacked(accountProof.codeHash));
-        return RLPWriter.writeList(listItems);
     }
 
     error BlockNumberTooOld();
     error BlockNumberTooNew();
     error StorageProofVerificationFailed();
+    error InvalidAccountProofLeafNode();
     error AccountProofVerificationFailed();
 }

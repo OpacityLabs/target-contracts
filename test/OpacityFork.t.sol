@@ -370,21 +370,16 @@ contract OpacityForkTest is Test {
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/test/fixtures/middlewareShimProof_3681762.json");
         string memory json = vm.readFile(path);
-        RegistryCoordinatorMimic.AccountProof memory accountProof;
-        accountProof.nonce = 1;
-        accountProof.balance = 0;
-        accountProof.storageHash = stdJson.readBytes32(json, ".storageHash");
-        accountProof.codeHash = stdJson.readBytes32(json, ".codeHash");
-        accountProof.accoutProof = stdJson.readBytesArray(json, ".accountProof");
-
-        bytes[] memory storageProof;
-        storageProof = stdJson.readBytesArray(json, ".storageProof[0].proof");
+        RegistryCoordinatorMimic.StateUpdateProof memory stateUpdateProof;
+        stateUpdateProof.storageHash = stdJson.readBytes32(json, ".storageHash");
+        stateUpdateProof.storageProof = stdJson.readBytesArray(json, ".storageProof[0].proof");
+        stateUpdateProof.accountProof = stdJson.readBytesArray(json, ".accountProof");
 
         path = string.concat(root, "/test/fixtures/executionStateRoot_3681762.json");
         json = vm.readFile(path);
         executionStateRoot = stdJson.readBytes32(json, ".value");
 
-        return (abi.encode(accountProof, storageProof), executionStateRoot);
+        return (abi.encode(stateUpdateProof), executionStateRoot);
     }
 }
 
