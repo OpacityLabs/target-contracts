@@ -272,9 +272,6 @@ contract RegistryCoordinatorMimic is
         // verify the storage proof
         bytes memory key = abi.encode(MIDDLEWARE_DATA_HASH_SLOT);
         bytes memory value = abi.encodePacked(middlewareDataHash);
-        // NOTICE: storage values in proofs of eth_getProof are RLP encoded
-        // https://www.quicknode.com/docs/ethereum/eth_getProof
-        // TODO: This burned me a lot of time - this needs to be heavily tested
         bytes memory result = SecureMerkleTrie.get(key, stateUpdateProof.storageProof, stateUpdateProof.storageHash);
         result = RLPReader.readBytes(result);
         require(
