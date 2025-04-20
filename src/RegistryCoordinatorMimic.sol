@@ -14,14 +14,13 @@ import {
 } from "@eigenlayer-middleware/interfaces/IStakeRegistry.sol";
 import {IIndexRegistry} from "@eigenlayer-middleware/interfaces/IIndexRegistry.sol";
 import {ISlashingRegistryCoordinatorTypes} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
+// NOTE: QuorumBitmapHistoryLib is an external library, which means it gets deployed
 import {QuorumBitmapHistoryLib} from "@eigenlayer-middleware/libraries/QuorumBitmapHistoryLib.sol";
 import {IMiddlewareShimTypes} from "./interfaces/IMiddlewareShim.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SP1Helios} from "@sp1-helios/SP1Helios.sol";
 import {SecureMerkleTrie} from "@optimism/libraries/trie/SecureMerkleTrie.sol";
 import {RLPReader} from "@optimism/libraries/rlp/RLPReader.sol";
-// TODO: QuorumBitmapHistoryLib is an external library, we don't want to deploy it so we either need to link it or create a library that just has the internal functions
-// Considering this contract is already bloated, it may be better to just link it
 
 // I cannot inherit both error interfaces because both of them have an error definition `QuorumAlreadyExists()`
 contract RegistryCoordinatorMimic is
