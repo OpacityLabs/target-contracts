@@ -3,6 +3,7 @@ pragma solidity ^0.8.12;
 
 import {RegistryCoordinatorMimic} from "../../src/RegistryCoordinatorMimic.sol";
 import {SP1Helios} from "@sp1-helios/SP1Helios.sol";
+import {console} from "forge-std/console.sol";
 
 contract RegistryCoordinatorMimicHarness is RegistryCoordinatorMimic {
     bool internal mockVerifyProof = false;

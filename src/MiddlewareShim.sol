@@ -18,9 +18,7 @@ contract MiddlewareShim is IMiddlewareShimTypes {
         registryCoordinator = _registryCoordinator;
     }
 
-    // TODO: should there be access control here?
-    // I sense a mild possibility of grifting due to asynchrones behavior of the diferent processes (lite client, shim, mimic)
-    // Though I don't have anything yet
+    // TODO: what to do if getMiddlewareData passes the block gas limit?
     function updateMiddlewareDataHash() external {
         // assume there is only one quorum 0
         MiddlewareData memory middlewareData = getMiddlewareData(registryCoordinator, uint32(block.number));
@@ -36,8 +34,8 @@ contract MiddlewareShim is IMiddlewareShimTypes {
             blockNumber: blockNumber,
             quorumUpdateBlockNumber: _registryCoordinator.quorumUpdateBlockNumber(0),
             operatorKeys: getOperatorKeys(_registryCoordinator, hex"00", blockNumber),
-            quorumApkUpdates: _getQuorumApkUpdates(_registryCoordinator), // TODO: make take blockNumber
-            totalStakeHistory: _getTotalStakeHistory(_registryCoordinator), // TODO: make take blockNumber
+            quorumApkUpdates: _getQuorumApkUpdates(_registryCoordinator, blockNumber),
+            totalStakeHistory: _getTotalStakeHistory(_registryCoordinator, blockNumber),
             operatorStakeHistory: _getOperatorStakeHistoryOfQuorum(_registryCoordinator, blockNumber),
             operatorBitmapHistory: _getOperatorBitmapHistory(_registryCoordinator, blockNumber)
         });
@@ -76,7 +74,7 @@ contract MiddlewareShim is IMiddlewareShimTypes {
         return operatorKeys;
     }
 
-    function _getQuorumApkUpdates(ISlashingRegistryCoordinator _registryCoordinator)
+    function _getQuorumApkUpdates(ISlashingRegistryCoordinator _registryCoordinator, uint32 blockNumber)
         internal
         view
         returns (ApkUpdate[] memory)
@@ -85,19 +83,24 @@ contract MiddlewareShim is IMiddlewareShimTypes {
         uint32 apkHistoryLength = blsApkRegistry.getApkHistoryLength(0);
         ApkUpdate[] memory apkUpdates = new ApkUpdate[](apkHistoryLength);
 
-        for (uint32 i = 0; i < apkHistoryLength; i++) {
+        uint256 i;
+        for (i = 0; i < apkHistoryLength; i++) {
             (bytes24 apkHash, uint32 updateBlockNumber, uint32 nextUpdateBlockNumber) = blsApkRegistry.apkHistory(0, i);
+            if (updateBlockNumber > blockNumber) break;
             apkUpdates[i] = ApkUpdate({
                 apkHash: apkHash,
                 updateBlockNumber: updateBlockNumber,
                 nextUpdateBlockNumber: nextUpdateBlockNumber
             });
         }
+        assembly {
+            mstore(apkUpdates, i)
+        }
 
         return apkUpdates;
     }
 
-    function _getTotalStakeHistory(ISlashingRegistryCoordinator _registryCoordinator)
+    function _getTotalStakeHistory(ISlashingRegistryCoordinator _registryCoordinator, uint32 blockNumber)
         internal
         view
         returns (StakeUpdate[] memory)
@@ -106,8 +109,13 @@ contract MiddlewareShim is IMiddlewareShimTypes {
         uint256 totalStakeHistoryLength = stakeRegistry.getTotalStakeHistoryLength(0);
         StakeUpdate[] memory totalStakeHistory = new StakeUpdate[](totalStakeHistoryLength);
 
-        for (uint256 i = 0; i < totalStakeHistoryLength; i++) {
+        uint256 i;
+        for (i = 0; i < totalStakeHistoryLength; i++) {
             totalStakeHistory[i] = stakeRegistry.getTotalStakeUpdateAtIndex(0, i);
+            if (totalStakeHistory[i].updateBlockNumber > blockNumber) break;
+        }
+        assembly {
+            mstore(totalStakeHistory, i)
         }
         return totalStakeHistory;
     }
