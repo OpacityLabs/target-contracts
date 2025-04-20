@@ -33,6 +33,7 @@ contract RegistryCoordinatorMimic is
     IMiddlewareShimTypes
 {
     struct StateUpdateProof {
+        uint256 blockNumber;
         bytes32 storageHash;
         bytes[] storageProof;
         bytes[] accountProof;
@@ -57,11 +58,20 @@ contract RegistryCoordinatorMimic is
         MIDDLEWARE_SHIM = _middlewareShim;
     }
 
-    // I really hope the usage of modifying the storage array lengths through assembly is not a problem for audits
+    // NOTE: I really hope the usage of modifying the storage array lengths through assembly is not a problem for audits
     // TODO: make this incremental (update only the added elements)
     function updateState(MiddlewareData calldata middlewareData, bytes calldata proof) external onlyOwner {
+        require(middlewareData.blockNumber > lastBlockNumber, MiddlewareDataBlockNumberTooOld());
+
+        // REVIEW: It's possible to update the middleware data to a newer one that's not necessarily the newest one
+        // E.g.: MiddlewareData transtitions: S1 (block:100) -> S2 (block:200) -> S3 (block:300)
+        // If S1 is the latest registered middleware data, and S3 is the latest update on the L1, a proof for S2 will be accepted
+        // -----------------------------------------------------------------------------------------------------------------
+        // This matters if we want a recent state update to imply the middlewareData is not stale,
+        // but it's still isn't clear if it's relevant for the AVS use case
+        StateUpdateProof memory stateUpdateProof = abi.decode(proof, (StateUpdateProof));
         bytes32 middlewareDataHash = keccak256(abi.encode(middlewareData));
-        _verifyProof(middlewareDataHash, middlewareData.blockNumber, proof);
+        _verifyProof(middlewareDataHash, stateUpdateProof);
 
         // set the storage array lengths
         {
@@ -106,6 +116,7 @@ contract RegistryCoordinatorMimic is
                 operatorBitmapHistoryEntry[j] = bitmapHistory[j];
             }
         }
+        lastBlockNumber = middlewareData.blockNumber;
     }
 
     /**
@@ -264,10 +275,9 @@ contract RegistryCoordinatorMimic is
     }
 
     // I hate making this function virtual but I need to do so I can mock it in tests
-    function _verifyProof(bytes32 middlewareDataHash, uint256 blockNumber, bytes calldata proof) internal virtual {
-        (StateUpdateProof memory stateUpdateProof) = abi.decode(proof, (StateUpdateProof));
-        require(blockNumber > lastBlockNumber, BlockNumberTooOld());
-        require(blockNumber <= LITE_CLIENT.head(), BlockNumberTooNew());
+    function _verifyProof(bytes32 middlewareDataHash, StateUpdateProof memory stateUpdateProof) internal virtual {
+        bytes32 executionStateRoot = LITE_CLIENT.executionStateRoots(stateUpdateProof.blockNumber);
+        require(executionStateRoot != bytes32(0), MissingExecutionStateRoot(stateUpdateProof.blockNumber));
 
         // verify the storage proof
         bytes memory key = abi.encode(MIDDLEWARE_DATA_HASH_SLOT);
@@ -279,7 +289,6 @@ contract RegistryCoordinatorMimic is
         );
 
         // verify the account proof
-        bytes32 executionStateRoot = LITE_CLIENT.executionStateRoots(blockNumber);
         key = abi.encodePacked(MIDDLEWARE_SHIM);
         // result is RLP encoded list of [nonce, balance, storageHash, codeHash]
         result = SecureMerkleTrie.get(key, stateUpdateProof.accountProof, executionStateRoot);
@@ -293,8 +302,8 @@ contract RegistryCoordinatorMimic is
         );
     }
 
-    error BlockNumberTooOld();
-    error BlockNumberTooNew();
+    error MiddlewareDataBlockNumberTooOld();
+    error MissingExecutionStateRoot(uint256 blockNumber);
     error StorageProofVerificationFailed();
     error InvalidAccountProofLeafNode();
     error AccountProofVerificationFailed();

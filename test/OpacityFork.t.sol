@@ -61,6 +61,7 @@ contract OpacityForkTest is Test {
     // tx: 0xefc0383920f5b2127b84b44655197a2d4c385dc7baa11f8a5d88f84e7f61d100
     // This version of the contract uses block.number - 1, the transaction is at block number 3681761, so the blocknumber in the middleware data is 3681760
     uint256 constant MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER = 3681760;
+    uint256 constant MIDDLEWARE_SHIM_DATA_PROOF_BLOCKNUMBER = 3681762;
     address constant MIDDLEWARE_SHIM_ADDRESS_HOLESKY = 0xaA8B9E35ccCcFf56A738d0C55569968Cf1C588A1;
 
     address registryCoordinatorMimicOwner = makeAddr("registryCoordinatorMimicOwner");
@@ -233,24 +234,15 @@ contract OpacityForkTest is Test {
         vm.prank(registryCoordinatorMimicOwner);
         RegistryCoordinatorMimic mimic = new RegistryCoordinatorMimic(SP1Helios(makeAddr("SP1Helios")), address(shim));
 
-        vm.expectCall(makeAddr("SP1Helios"), abi.encodeWithSignature("head()"));
-        vm.mockCall(
-            makeAddr("SP1Helios"),
-            abi.encodeWithSignature("head()"),
-            abi.encode(MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER)
-        );
-
         vm.expectCall(
             makeAddr("SP1Helios"),
-            abi.encodeWithSignature("executionStateRoots(uint256)", MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER)
+            abi.encodeWithSignature("executionStateRoots(uint256)", MIDDLEWARE_SHIM_DATA_PROOF_BLOCKNUMBER)
         );
         vm.mockCall(
             makeAddr("SP1Helios"),
-            abi.encodeWithSignature("executionStateRoots(uint256)", MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER),
+            abi.encodeWithSignature("executionStateRoots(uint256)", MIDDLEWARE_SHIM_DATA_PROOF_BLOCKNUMBER),
             abi.encode(executionStateRoot)
         );
-
-        // TODO I think something it fucked up with the way I use block numbers
 
         vm.prank(registryCoordinatorMimicOwner);
         mimic.updateState(middlewareData, proof);
@@ -370,6 +362,7 @@ contract OpacityForkTest is Test {
         string memory path = string.concat(root, "/test/fixtures/middlewareShimProof_3681762.json");
         string memory json = vm.readFile(path);
         RegistryCoordinatorMimic.StateUpdateProof memory stateUpdateProof;
+        stateUpdateProof.blockNumber = MIDDLEWARE_SHIM_DATA_PROOF_BLOCKNUMBER;
         stateUpdateProof.storageHash = stdJson.readBytes32(json, ".storageHash");
         stateUpdateProof.storageProof = stdJson.readBytesArray(json, ".storageProof[0].proof");
         stateUpdateProof.accountProof = stdJson.readBytesArray(json, ".accountProof");
