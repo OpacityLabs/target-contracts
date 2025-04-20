@@ -65,7 +65,6 @@ contract OpacityForkTest is Test {
 
     address registryCoordinatorMimicOwner = makeAddr("registryCoordinatorMimicOwner");
 
-    // TODO(chore): I don't really like having these signatures written as static strings
     string constant DEPOSIT_FUNCTION_SIGNATURE = "depositIntoStrategy(address,address,uint256)";
     string constant APPROVE_FUNCTION_SIGNATURE = "approve(address,uint256)";
     string constant REGISTER_FUNCTION_SIGNATURE = "registerAsOperator(address,uint32,string)";
@@ -242,7 +241,7 @@ contract OpacityForkTest is Test {
         );
 
         vm.expectCall(
-            makeAddr("SP1Helios"), 
+            makeAddr("SP1Helios"),
             abi.encodeWithSignature("executionStateRoots(uint256)", MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER)
         );
         vm.mockCall(
