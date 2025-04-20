@@ -11,15 +11,11 @@ contract RegistryCoordinatorMimicHarness is RegistryCoordinatorMimic {
         RegistryCoordinatorMimic(_liteClient, _middlewareShim)
     {}
 
-    function _verifyProof(bytes32 middlewareDataHash, StateUpdateProof memory stateUpdateProof)
-        internal
-        virtual
-        override
-    {
+    function _verifyProof(bytes32 middlewareDataHash, bytes calldata proof) internal virtual override {
         if (mockVerifyProof) {
             return;
         }
-        super._verifyProof(middlewareDataHash, stateUpdateProof);
+        super._verifyProof(middlewareDataHash, proof);
     }
 
     function harness_setMockVerifyProof(bool _mockVerifyProof) external {
