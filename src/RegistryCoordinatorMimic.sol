@@ -69,9 +69,8 @@ contract RegistryCoordinatorMimic is
         // -----------------------------------------------------------------------------------------------------------------
         // This matters if we want a recent state update to imply the middlewareData is not stale,
         // but it's still isn't clear if it's relevant for the AVS use case
-        StateUpdateProof memory stateUpdateProof = abi.decode(proof, (StateUpdateProof));
         bytes32 middlewareDataHash = keccak256(abi.encode(middlewareData));
-        _verifyProof(middlewareDataHash, stateUpdateProof);
+        _verifyProof(middlewareDataHash, proof);
 
         // set the storage array lengths
         {
@@ -275,7 +274,8 @@ contract RegistryCoordinatorMimic is
     }
 
     // I hate making this function virtual but I need to do so I can mock it in tests
-    function _verifyProof(bytes32 middlewareDataHash, StateUpdateProof memory stateUpdateProof) internal virtual {
+    function _verifyProof(bytes32 middlewareDataHash, bytes calldata proof) internal virtual {
+        StateUpdateProof memory stateUpdateProof = abi.decode(proof, (StateUpdateProof));
         bytes32 executionStateRoot = LITE_CLIENT.executionStateRoots(stateUpdateProof.blockNumber);
         require(executionStateRoot != bytes32(0), MissingExecutionStateRoot(stateUpdateProof.blockNumber));
 
