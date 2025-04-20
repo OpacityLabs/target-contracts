@@ -287,8 +287,8 @@ contract RegistryCoordinatorMimic is
         bytes32 executionStateRoot = LITE_CLIENT.executionStateRoots(blockNumber);
         key = abi.encodePacked(MIDDLEWARE_SHIM);
         value = _computeAccountProofValue(accountProof);
-        result = SecureMerkleTrie.get(key, storageProof, executionStateRoot);
-        result = RLPReader.readBytes(result);
+        // result is RLP encoded list of [nonce, balance, storageHash, codeHash]
+        result = SecureMerkleTrie.get(key, accountProof.accoutProof, executionStateRoot);
         require(
             keccak256(abi.encodePacked(result)) == keccak256(abi.encodePacked(value)), AccountProofVerificationFailed()
         );
