@@ -230,7 +230,7 @@ contract OpacityForkTest is Test {
         MiddlewareShim.MiddlewareData memory middlewareData =
             shim.getMiddlewareData(registryCoordinator, uint32(MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER));
 
-        bytes memory proof = _constructMiddlewareShimProof();
+        (bytes memory proof, bytes32 executionStateRoot) = _constructMiddlewareShimProof();
         vm.prank(registryCoordinatorMimicOwner);
         RegistryCoordinatorMimic mimic = new RegistryCoordinatorMimic(SP1Helios(makeAddr("SP1Helios")), address(shim));
 
@@ -241,9 +241,17 @@ contract OpacityForkTest is Test {
             abi.encode(MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER)
         );
 
-        bytes32 middlewareDataHash = keccak256(abi.encode(middlewareData));
-        console.log("middlewareDataHash");
-        console.logBytes32(middlewareDataHash);
+        vm.expectCall(
+            makeAddr("SP1Helios"), 
+            abi.encodeWithSignature("executionStateRoots(uint256)", MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER)
+        );
+        vm.mockCall(
+            makeAddr("SP1Helios"),
+            abi.encodeWithSignature("executionStateRoots(uint256)", MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER),
+            abi.encode(executionStateRoot)
+        );
+
+        // TODO I think something it fucked up with the way I use block numbers
 
         vm.prank(registryCoordinatorMimicOwner);
         mimic.updateState(middlewareData, proof);
@@ -358,7 +366,7 @@ contract OpacityForkTest is Test {
         return ISignatureUtilsMixinTypes.SignatureWithSaltAndExpiry({signature: signature, salt: salt, expiry: expiry});
     }
 
-    function _constructMiddlewareShimProof() internal returns (bytes memory) {
+    function _constructMiddlewareShimProof() internal view returns (bytes memory proof, bytes32 executionStateRoot) {
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/test/fixtures/middlewareShimProof_3681762.json");
         string memory json = vm.readFile(path);
@@ -372,7 +380,11 @@ contract OpacityForkTest is Test {
         bytes[] memory storageProof;
         storageProof = stdJson.readBytesArray(json, ".storageProof[0].proof");
 
-        return abi.encode(accountProof, storageProof);
+        path = string.concat(root, "/test/fixtures/executionStateRoot_3681762.json");
+        json = vm.readFile(path);
+        executionStateRoot = stdJson.readBytes32(json, ".value");
+
+        return (abi.encode(accountProof, storageProof), executionStateRoot);
     }
 }
 
