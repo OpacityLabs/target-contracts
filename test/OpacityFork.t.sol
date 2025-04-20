@@ -241,7 +241,7 @@ contract OpacityForkTest is Test {
         );
 
         vm.expectCall(
-            makeAddr("SP1Helios"), 
+            makeAddr("SP1Helios"),
             abi.encodeWithSignature("executionStateRoots(uint256)", MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER)
         );
         vm.mockCall(

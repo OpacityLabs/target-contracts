@@ -283,12 +283,13 @@ contract RegistryCoordinatorMimic is
         key = abi.encodePacked(MIDDLEWARE_SHIM);
         // result is RLP encoded list of [nonce, balance, storageHash, codeHash]
         result = SecureMerkleTrie.get(key, stateUpdateProof.accountProof, executionStateRoot);
-        RLPReader.RLPItem[] memory resultItems = RLPReader.readList(result); 
+        RLPReader.RLPItem[] memory resultItems = RLPReader.readList(result);
         require(resultItems.length == 4, InvalidAccountProofLeafNode());
         // REVIEW: I'm 99% sure it's sound to just check the storageHash and ignore the rest, but a second eye is needed
         bytes memory storageHash = RLPReader.readBytes(resultItems[2]);
         require(
-            keccak256(storageHash) == keccak256(abi.encodePacked(stateUpdateProof.storageHash)), AccountProofVerificationFailed()
+            keccak256(storageHash) == keccak256(abi.encodePacked(stateUpdateProof.storageHash)),
+            AccountProofVerificationFailed()
         );
     }
 
