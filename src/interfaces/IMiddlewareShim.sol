@@ -9,7 +9,7 @@ interface IMiddlewareShimTypes is ISlashingRegistryCoordinatorTypes, IBLSApkRegi
     struct OperatorKeys {
         BN254.G1Point pkG1;
         BN254.G2Point pkG2;
-        uint96 stake;
+        uint96 stake; // TODO: I think the stake here is unecessary, review
     }
 
     struct OperatorStakeHistoryEntry {
