@@ -22,4 +22,24 @@ contract RegistryCoordinatorMimicHarness is RegistryCoordinatorMimic {
     function harness_setMockVerifyProof(bool _mockVerifyProof) external {
         mockVerifyProof = _mockVerifyProof;
     }
+
+    function harness_getQuorumApkUpdates() external view returns (ApkUpdate[] memory) {
+        return quorumApkUpdates;
+    }
+
+    function harness_getTotalStakeHistory() external view returns (StakeUpdate[] memory) {
+        return totalStakeHistory;
+    }
+
+    function harness_getOperatorStakeHistory(bytes32 operatorId) external view returns (StakeUpdate[] memory) {
+        return operatorStakeHistory[operatorId];
+    }
+
+    function harness_getOperatorBitmapHistory(bytes32 operatorId) external view returns (QuorumBitmapUpdate[] memory) {
+        return operatorBitmapHistory[operatorId];
+    }
+
+    function harness_getQuorum0UpdateBlockNumber() external view returns (uint256) {
+        return quorum0UpdateBlockNumber;
+    }
 }
