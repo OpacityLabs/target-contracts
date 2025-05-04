@@ -14,3 +14,6 @@
 [submodule "lib/optimism"]
 	path = lib/optimism
 	url = https://github.com/ethereum-optimism/optimism
+[submodule "test/e2e/eigenlayer-bls-local"]
+	path = test/e2e/eigenlayer-bls-local
+	url = https://github.com/BreadchainCoop/eigenlayer-bls-local
