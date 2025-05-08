@@ -12,7 +12,7 @@ remappings = [
     "@optimism/=lib/optimism/packages/contracts-bedrock/src/"
 ]
 
-fs_permissions = [{ access = "read", path = "." }]
+fs_permissions = [{ access = "read", path = "." }, { access = "write", path = "./test/e2e/scripts/artifacts"}]
 
 [rpc_endpoints]
 holesky = "https://ethereum-holesky-rpc.publicnode.com"
