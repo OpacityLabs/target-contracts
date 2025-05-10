@@ -9,11 +9,9 @@ contract DeployL2 is Script {
     function setUp() public {}
 
     function run() public {
-        string memory rpcUrl = vm.envString("L2_RPC_URL");
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address middlewareShim = vm.envAddress("MIDDLEWARE_SHIM_ADDRESS");
 
-        vm.createSelectFork(rpcUrl);
         vm.startBroadcast(deployerPrivateKey);
         // TODO: add SP1Helios address
         RegistryCoordinatorMimic registryCoordinatorMimic =

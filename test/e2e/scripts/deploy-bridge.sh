@@ -44,8 +44,6 @@ fi
 
 
 export REGISTRY_COORDINATOR_ADDRESS=$(jq -r '.addresses.registryCoordinator' "$AVS_DEPLOYMENT_PATH")
-export L1_RPC_URL=$L1_RPC_URL
-export L2_RPC_URL=$L2_RPC_URL
 export PRIVATE_KEY=$DEPLOYER_KEY
 export L1_OUT_PATH=$SCRIPT_DIR/artifacts/l1-deploy.json
 
@@ -55,7 +53,6 @@ export L1_OUT_PATH=$SCRIPT_DIR/artifacts/l1-deploy.json
 # Error: Multi chain deployment does not support library linking at the moment. #
 #-------------------------------------------------------------------------------#
 
-forge script DeployL1 --broadcast
+forge script DeployL1 --broadcast --rpc-url $L1_RPC_URL
 export MIDDLEWARE_SHIM_ADDRESS=$(jq -r '.middlewareShim' "$L1_OUT_PATH")
-# TODO: this does not work because for some reason it thinks it's in a multi chain deployment?
-# forge script DeployL2 --broadcast
+forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL
