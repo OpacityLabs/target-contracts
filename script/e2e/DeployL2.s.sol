@@ -11,11 +11,11 @@ contract DeployL2 is Script {
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address middlewareShim = vm.envAddress("MIDDLEWARE_SHIM_ADDRESS");
+        address sp1heliosAddress = vm.envAddress("SP1HELIOS_ADDRESS");
 
         vm.startBroadcast(deployerPrivateKey);
-        // TODO: add SP1Helios address
         RegistryCoordinatorMimic registryCoordinatorMimic =
-            new RegistryCoordinatorMimic(SP1Helios(address(0)), address(middlewareShim));
+            new RegistryCoordinatorMimic(SP1Helios(sp1heliosAddress), address(middlewareShim));
         console.log("RegistryCoordinatorMimic deployed at:", address(registryCoordinatorMimic));
 
         vm.stopBroadcast();

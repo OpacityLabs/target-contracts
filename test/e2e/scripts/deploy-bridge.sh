@@ -16,6 +16,12 @@ if ! jq empty "$AVS_DEPLOYMENT_PATH" 2>/dev/null; then
     exit 1
 fi
 
+# Check if SP1HELIOS_ADDRESS is set
+if [ -z "$SP1HELIOS_ADDRESS" ]; then
+    echo "Error: SP1HELIOS_ADDRESS is not set in the environment variables"
+    exit 1
+fi
+
 L1_RPC_URL="http://localhost:8545"
 L2_RPC_URL="http://localhost:8546"
 
@@ -55,4 +61,5 @@ export L1_OUT_PATH=$SCRIPT_DIR/artifacts/l1-deploy.json
 
 forge script DeployL1 --broadcast --rpc-url $L1_RPC_URL
 export MIDDLEWARE_SHIM_ADDRESS=$(jq -r '.middlewareShim' "$L1_OUT_PATH")
+export SP1HELIOS_ADDRESS=$SP1HELIOS_ADDRESS
 forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL
