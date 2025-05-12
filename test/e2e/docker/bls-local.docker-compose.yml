@@ -5,7 +5,9 @@ services:
       context: ../eigenlayer-bls-local/docker/ethereum
       dockerfile: Dockerfile.ethereum
     env_file:
-      - ../envs/l1.env
+      - ../envs/bls-local.env
+    environment:
+      - FORK_URL=${L1_FORK_URL}
     ports:
       - "8545:8545"
     
@@ -15,7 +17,9 @@ services:
       context: ../eigenlayer-bls-local/docker/ethereum
       dockerfile: Dockerfile.ethereum
     env_file:
-      - ../envs/l2.env
+      - ../envs/bls-local.env
+    environment:
+      - FORK_URL=${L2_FORK_URL}
     ports:
       - "8546:8545"
 
