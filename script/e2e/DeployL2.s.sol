@@ -4,6 +4,9 @@ pragma solidity ^0.8.12;
 import {Script, console} from "forge-std/Script.sol";
 import {RegistryCoordinatorMimic} from "../../src/RegistryCoordinatorMimic.sol";
 import {SP1Helios} from "@sp1-helios/SP1Helios.sol";
+import {BLSSignatureChecker} from "@eigenlayer-middleware/BLSSignatureChecker.sol";
+import {ISlashingRegistryCoordinator} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
+import {SP1HeliosMock} from "./SP1HeliosMock.sol";
 
 contract DeployL2 is Script {
     function setUp() public {}
@@ -12,11 +15,28 @@ contract DeployL2 is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address middlewareShim = vm.envAddress("MIDDLEWARE_SHIM_ADDRESS");
         address sp1heliosAddress = vm.envAddress("SP1HELIOS_ADDRESS");
+        bool isMockSP1Helios = vm.envBool("IS_MOCK_SP1_HELIOS");
+        string memory outPath = vm.envString("L2_OUT_PATH");
 
         vm.startBroadcast(deployerPrivateKey);
+        if (isMockSP1Helios) {
+            console.log("SP1Helios is mocked, deploying mock...");
+            SP1HeliosMock sp1heliosMock = new SP1HeliosMock();
+            sp1heliosAddress = address(sp1heliosMock);
+            console.log("SP1HeliosMock deployed at:", sp1heliosAddress);
+        }
+
         RegistryCoordinatorMimic registryCoordinatorMimic =
             new RegistryCoordinatorMimic(SP1Helios(sp1heliosAddress), address(middlewareShim));
         console.log("RegistryCoordinatorMimic deployed at:", address(registryCoordinatorMimic));
+
+        BLSSignatureChecker blsSignatureChecker = new BLSSignatureChecker(ISlashingRegistryCoordinator(address(registryCoordinatorMimic)));
+        console.log("BLSSignatureChecker deployed at:", address(blsSignatureChecker));
+
+        string memory json = vm.serializeAddress("object key", "registryCoordinatorMimic", address(registryCoordinatorMimic));
+        json = vm.serializeAddress("object key", "blsSignatureChecker", address(blsSignatureChecker));
+        vm.writeFile(outPath, json);
+        console.log("Deployment info written to", outPath);
 
         vm.stopBroadcast();
     }

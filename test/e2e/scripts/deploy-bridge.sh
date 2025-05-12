@@ -52,6 +52,7 @@ fi
 export REGISTRY_COORDINATOR_ADDRESS=$(jq -r '.addresses.registryCoordinator' "$AVS_DEPLOYMENT_PATH")
 export PRIVATE_KEY=$DEPLOYER_KEY
 export L1_OUT_PATH=$SCRIPT_DIR/artifacts/l1-deploy.json
+export L2_OUT_PATH=$SCRIPT_DIR/artifacts/l2-deploy.json
 
 # We use two separate scripts this way because EigenLayer's QuorumBitmapHistoryLib is an external library,
 # and Multi chain deployment does not support library linking at the moment.

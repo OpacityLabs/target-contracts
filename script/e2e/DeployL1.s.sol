@@ -23,8 +23,6 @@ contract DeployL1 is Script {
         vm.writeFile(outPath, vm.serializeAddress("object key", "middlewareShim", address(middlewareShim)));
         console.log("Deployment info written to", outPath);
 
-        // middlewareShim.updateMiddlewareDataHash();
-
         vm.stopBroadcast();
     }
 }
