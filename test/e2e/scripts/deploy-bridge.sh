@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Get to the root directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd $SCRIPT_DIR
+source ../envs/bls-local.env
 cd "$SCRIPT_DIR"/../../..
 
 AVS_DEPLOYMENT_PATH="$SCRIPT_DIR"/../eigenlayer-bls-local/.nodes/avs_deploy.json
@@ -22,12 +23,17 @@ if [ -z "$SP1HELIOS_ADDRESS" ]; then
     exit 1
 fi
 
-L1_RPC_URL="http://localhost:8545"
-L2_RPC_URL="http://localhost:8546"
+# Check if L1_RPC_URL is set
+if [ -z "$L1_RPC_URL" ]; then
+    echo "Error: L1_RPC_URL is not set in the environment variables"
+    exit 1
+fi
 
-DEPLOYER_INFO=$(cast wallet new --json)
-DEPLOYER_KEY=$(echo "$DEPLOYER_INFO" | jq -r '.[0].private_key')
-DEPLOYER_ADDRESS=$(echo "$DEPLOYER_INFO" | jq -r '.[0].address')
+# Check if L2_RPC_URL is set
+if [ -z "$L2_RPC_URL" ]; then
+    echo "Error: L2_RPC_URL is not set in the environment variables"
+    exit 1
+fi
 
 if [ "$ENVIRONMENT" = "TESTNET" ]; then
     if [ -z "$FUNDED_KEY" ]; then
@@ -36,6 +42,9 @@ if [ "$ENVIRONMENT" = "TESTNET" ]; then
     fi
     DEPLOYER_KEY=$FUNDED_KEY
 else
+    DEPLOYER_INFO=$(cast wallet new --json)
+    DEPLOYER_KEY=$(echo "$DEPLOYER_INFO" | jq -r '.[0].private_key')
+    DEPLOYER_ADDRESS=$(echo "$DEPLOYER_INFO" | jq -r '.[0].address')
     cast rpc anvil_setBalance $DEPLOYER_ADDRESS 0x10000000000000000000 --rpc-url $L1_RPC_URL > /dev/null 2>&1
     if [ $? -ne 0 ]; then
         echo "Error: Failed to set balance for deployer account"
@@ -48,11 +57,11 @@ else
     fi
 fi
 
-
 export REGISTRY_COORDINATOR_ADDRESS=$(jq -r '.addresses.registryCoordinator' "$AVS_DEPLOYMENT_PATH")
 export PRIVATE_KEY=$DEPLOYER_KEY
 export L1_OUT_PATH=$SCRIPT_DIR/artifacts/l1-deploy.json
 export L2_OUT_PATH=$SCRIPT_DIR/artifacts/l2-deploy.json
+export IS_SP1HELIOS_MOCK=$IS_SP1HELIOS_MOCK
 
 # We use two separate scripts this way because EigenLayer's QuorumBitmapHistoryLib is an external library,
 # and Multi chain deployment does not support library linking at the moment.
