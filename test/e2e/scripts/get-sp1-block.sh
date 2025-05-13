@@ -39,6 +39,9 @@ if [ $? -ne 0 ]; then
 fi
 echo "Initial head: $initial_head"
 
+# TODO this currently gets the latest beacon chain slot which is not what we want
+# we want latest execution state root, so we need to fetch last update transaction, reads its logs and from there get the block number and not slot number
+
 # Poll until we get a new header
 while true; do
     current_head=$(get_current_head)
