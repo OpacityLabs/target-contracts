@@ -1,0 +1,24 @@
+services:
+  eigenlayer:
+    platform: linux/amd64
+    build:
+      context: ../eigenlayer-bls-local/docker/eigenlayer
+      dockerfile: Dockerfile.eigenlayer
+    env_file:
+      - ../envs/bls-local.env
+    environment:
+      - ENVIRONMENT=TESTNET
+    volumes:
+      - ../eigenlayer-bls-local/.nodes:/root/.nodes
+  
+  signer:
+    image: ghcr.io/layr-labs/cerberus:0.0.2
+    platform: linux/amd64
+    ports:
+      - "${CERBERUS_METRICS_PORT}:${CERBERUS_METRICS_PORT}"
+      - "${CERBERUS_GRPC_PORT}:${CERBERUS_GRPC_PORT}"
+    environment:
+      - "METRICS_PORT=${CERBERUS_METRICS_PORT}"
+    env_file:
+      - ../envs/bls-local.env
+    restart: unless-stopped
