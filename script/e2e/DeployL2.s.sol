@@ -15,11 +15,11 @@ contract DeployL2 is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address middlewareShim = vm.envAddress("MIDDLEWARE_SHIM_ADDRESS");
         address sp1heliosAddress = vm.envAddress("SP1HELIOS_ADDRESS");
-        bool isMockSP1Helios = vm.envBool("IS_MOCK_SP1_HELIOS");
+        bool isSp1HeliosMock = vm.envBool("IS_SP1HELIOS_MOCK");
         string memory outPath = vm.envString("L2_OUT_PATH");
 
         vm.startBroadcast(deployerPrivateKey);
-        if (isMockSP1Helios) {
+        if (isSp1HeliosMock) {
             console.log("SP1Helios is mocked, deploying mock...");
             SP1HeliosMock sp1heliosMock = new SP1HeliosMock();
             sp1heliosAddress = address(sp1heliosMock);
