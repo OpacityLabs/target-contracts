@@ -8,9 +8,9 @@ import {ISlashingRegistryCoordinator} from "@eigenlayer-middleware/interfaces/IS
 import {IBLSApkRegistry} from "@eigenlayer-middleware/interfaces/IBLSApkRegistry.sol";
 import {IStakeRegistry} from "@eigenlayer-middleware/interfaces/IStakeRegistry.sol";
 import {IIndexRegistry} from "@eigenlayer-middleware/interfaces/IIndexRegistry.sol";
-import {IMiddlewareShimTypes} from "./interfaces/IMiddlewareShim.sol";
+import {IMiddlewareShim} from "./interfaces/IMiddlewareShim.sol";
 
-contract MiddlewareShim is IMiddlewareShimTypes {
+contract MiddlewareShim is IMiddlewareShim {
     bytes32 public middlewareDataHash;
     ISlashingRegistryCoordinator public registryCoordinator;
 
