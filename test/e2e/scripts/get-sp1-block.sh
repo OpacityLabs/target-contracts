@@ -9,7 +9,8 @@ cd $SCRIPT_DIR
 source ../envs/bls-local.env
 
 # If using mock SP1Helios, just get latest L1 block number
-if [ "$IS_SP1HELIOS_MOCK" = "true" ]; then
+if [ "$IS_SP1HELIOS_MOCK" = "1" ]; then
+    echo "Using mock SP1Helios, getting latest L1 block number"
     LATEST_BLOCK=$(cast block --rpc-url $L1_RPC_URL latest --json | jq -r '.number')
     echo $LATEST_BLOCK
     exit 0
@@ -51,14 +52,10 @@ while true; do
     fi
     # lexographical comparison works here because both hex strings are the same length
     if [[ "0x${current_head#0x}" > "0x${initial_head#0x}" ]]; then
+        current_head=$(cast to-dec $current_head)
         echo "New header found at block: $current_head"
         exit 0
     fi
     echo "Waiting for new header..."
     sleep 5
 done
-
-
-
-
-
