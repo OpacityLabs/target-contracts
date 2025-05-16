@@ -12,7 +12,8 @@ remappings = [
     "@optimism/=lib/optimism/packages/contracts-bedrock/src/"
 ]
 
-fs_permissions = [{ access = "read", path = "." }, { access = "write", path = "./test/e2e/scripts/artifacts"}]
+# I can't tell why foundry wants the path to be exact but it does not work for me
+fs_permissions = [{ access = "read", path = "./test/e2e/scripts/artifacts/middlewareDataProof.json" }, { access = "write", path = "./test/e2e/scripts/artifacts"}]
 
 [rpc_endpoints]
 holesky = "https://ethereum-holesky-rpc.publicnode.com"
