@@ -21,23 +21,22 @@ BLOCK_NUMBER=$1
 # Get the directory this script is in
 OUTPUT_FILE="${SCRIPT_DIR}/artifacts/middlewareDataProof.json"
 
-# Storage slot 0 contains the middlewareDataHash
-STORAGE_SLOT=0
+L1_DEPLOY_PATH="${SCRIPT_DIR}/artifacts/l1-deploy.json"
+MIDDLEWARE_SHIM=$(cat $L1_DEPLOY_PATH | jq -r '.middlewareShim')
 
-if [ -z "$MIDDLEWARE_SHIM" ]; then
-    echo "Error: Could not find MiddlewareShim address"
+if [ -z "$MIDDLEWARE_SHIM" ] || [ "$MIDDLEWARE_SHIM" = "null" ]; then
+    echo "Error: Could not find middleware shim address in l1-deploy file"
     exit 1
 fi
+
+# Storage slot 0 contains the middlewareDataHash
+STORAGE_SLOT=0
 
 # Get the proof data using cast
 PROOF_DATA=$(cast proof -B $BLOCK_NUMBER $MIDDLEWARE_SHIM $STORAGE_SLOT --rpc-url $L1_RPC_URL | jq '.')
 
-echo "PROOF_DATA: $PROOF_DATA"
-
 # Get the execution state root using cast block
 EXECUTION_STATE_ROOT=$(cast block $BLOCK_NUMBER --rpc-url $L1_RPC_URL --json | jq -r '.stateRoot')
-
-echo "EXECUTION_STATE_ROOT: $EXECUTION_STATE_ROOT"
 
 # Create the custom proof layout
 CUSTOM_PROOF=$(jq -n \
