@@ -13,7 +13,11 @@ remappings = [
 ]
 
 # I can't tell why foundry wants the path to be exact but it does not work for me
-fs_permissions = [{ access = "read", path = "./" }, { access = "write", path = "./test/e2e/scripts/artifacts"}]
+fs_permissions = [
+    { access = "read", path = "./" },
+    { access = "read", path = "./test/e2e/scripts/artifacts/middlewareDataProof.json" },  # for some reason update-mimic script insists to specifically list this path
+    { access = "write", path = "./test/e2e/scripts/artifacts"}
+]
 
 [rpc_endpoints]
-holesky = "https://ethereum-holesky-rpc.publicnode.com"
+holesky = "https://1rpc.io/holesky"
