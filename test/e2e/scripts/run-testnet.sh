@@ -26,3 +26,6 @@ echo "Generating proof..."
 
 echo "Updating middleware shim with latest data hash..."
 ./update-mimic.sh || handle_error $?
+
+echo "Running check signatures..."
+./run-check-signatures.sh || handle_error $?
