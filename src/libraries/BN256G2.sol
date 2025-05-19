@@ -37,7 +37,7 @@ library BN256G2 {
         uint256 pt2xy,
         uint256 pt2yx,
         uint256 pt2yy
-    ) public view returns (uint256, uint256, uint256, uint256) {
+    ) internal view returns (uint256, uint256, uint256, uint256) {
         if (pt1xx == 0 && pt1xy == 0 && pt1yx == 0 && pt1yy == 0) {
             if (!(pt2xx == 0 && pt2xy == 0 && pt2yx == 0 && pt2yy == 0)) {
                 assert(_isOnCurve(pt2xx, pt2xy, pt2yx, pt2yy));
@@ -66,7 +66,7 @@ library BN256G2 {
      * @return (pt2xx, pt2xy, pt2yx, pt2yy)
      */
     function ECTwistMul(uint256 s, uint256 pt1xx, uint256 pt1xy, uint256 pt1yx, uint256 pt1yy)
-        public
+        internal
         view
         returns (uint256, uint256, uint256, uint256)
     {
