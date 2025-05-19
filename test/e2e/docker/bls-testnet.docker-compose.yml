@@ -10,6 +10,8 @@ services:
       - ENVIRONMENT=TESTNET
     volumes:
       - ../eigenlayer-bls-local/.nodes:/root/.nodes
+      - ../eigenlayer-bls-local/docker/eigenlayer/config.json:/bls-middleware/contracts/docker/eigenlayer/config.json
+
   
   signer:
     image: ghcr.io/layr-labs/cerberus:0.0.2
