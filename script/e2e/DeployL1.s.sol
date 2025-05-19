@@ -4,6 +4,7 @@ pragma solidity ^0.8.12;
 import {Script, console} from "forge-std/Script.sol";
 import {MiddlewareShim} from "../../src/MiddlewareShim.sol";
 import {ISlashingRegistryCoordinator} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
+import {BLSSigCheckOperatorStateRetriever} from "@eigenlayer-middleware/unaudited/BLSSigCheckOperatorStateRetriever.sol";
 
 contract DeployL1 is Script {
     function setUp() public {}
@@ -20,7 +21,11 @@ contract DeployL1 is Script {
             new MiddlewareShim(ISlashingRegistryCoordinator(REGISTRY_COORDINATOR_ADDRESS));
         console.log("MiddlewareShim deployed at:", address(middlewareShim));
 
+        BLSSigCheckOperatorStateRetriever stateRetriever = new BLSSigCheckOperatorStateRetriever();
+        console.log("Deployed BLSSigCheckOperatorStateRetriever at:", address(stateRetriever));
+
         vm.writeFile(outPath, vm.serializeAddress("object key", "middlewareShim", address(middlewareShim)));
+        vm.writeFile(outPath, vm.serializeAddress("object key", "stateRetriever", address(stateRetriever)));
         console.log("Deployment info written to", outPath);
 
         vm.stopBroadcast();
