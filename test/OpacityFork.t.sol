@@ -11,7 +11,7 @@ import {ISlashingRegistryCoordinator} from "@eigenlayer-middleware/interfaces/IS
 import {IBLSApkRegistry, IBLSApkRegistryTypes} from "@eigenlayer-middleware/interfaces/IBLSApkRegistry.sol";
 import {IBLSSignatureCheckerTypes} from "@eigenlayer-middleware/interfaces/IBLSSignatureChecker.sol";
 import {BLSSignatureChecker} from "@eigenlayer-middleware/BLSSignatureChecker.sol";
-import {OperatorStateRetriever} from "@eigenlayer-middleware/OperatorStateRetriever.sol";
+import {BLSSigCheckOperatorStateRetriever} from "@eigenlayer-middleware/unaudited/BLSSigCheckOperatorStateRetriever.sol";
 import {BN254} from "@eigenlayer-middleware/libraries/BN254.sol";
 import {Strings} from "@openzeppelin-utils/Strings.sol";
 
@@ -91,7 +91,7 @@ contract OpacityForkTest is Test {
         {
             address ejector = registryCoordinator.ejector();
             bytes32[] memory operatorIds =
-                registryCoordinator.indexRegistry().getOperatorListAtBlockNumber(0, uint32(3633000));
+                registryCoordinator.indexRegistry().getOperatorListAtBlockNumber(0, uint32(block.number));
             for (uint256 i = 0; i < operatorIds.length; i++) {
                 address operator = registryCoordinator.getOperatorFromId(operatorIds[i]);
                 vm.prank(ejector);
@@ -148,7 +148,7 @@ contract OpacityForkTest is Test {
         }
 
         // Deploy operator state retriever
-        OperatorStateRetriever retriever = new OperatorStateRetriever();
+        BLSSigCheckOperatorStateRetriever retriever = new BLSSigCheckOperatorStateRetriever();
         // Deploy bls signature checker
         BLSSignatureChecker checker = new BLSSignatureChecker(registryCoordinator);
 
