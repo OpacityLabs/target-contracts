@@ -12,3 +12,6 @@ docs/
 
 # Dotenv file
 .env
+
+/test/e2e/docker/.nodes/*
+!/test/e2e/docker/.nodes/.gitkeep

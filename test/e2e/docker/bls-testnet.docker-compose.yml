@@ -1,18 +1,15 @@
 services:
   eigenlayer:
     platform: linux/amd64
-    build:
-      context: ../eigenlayer-bls-local/docker/eigenlayer
-      dockerfile: Dockerfile.eigenlayer
+    image: ghcr.io/breadchaincoop/eigenlayer:dev-4bfada0
     env_file:
       - ../envs/bls-local.env
     environment:
       - ENVIRONMENT=TESTNET
     volumes:
-      - ../eigenlayer-bls-local/.nodes:/root/.nodes
-      - ../eigenlayer-bls-local/docker/eigenlayer/config.json:/bls-middleware/contracts/docker/eigenlayer/config.json
+      - ./.nodes:/root/.nodes
+      - ./config/config.json:/bls-middleware/contracts/docker/eigenlayer/config.json
 
-  
   signer:
     image: ghcr.io/layr-labs/cerberus:0.0.2
     platform: linux/amd64
