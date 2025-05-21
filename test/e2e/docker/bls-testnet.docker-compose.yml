@@ -1,7 +1,7 @@
 services:
   eigenlayer:
     platform: linux/amd64
-    image: ghcr.io/breadchaincoop/eigenlayer:dev-4bfada0
+    image: ghcr.io/breadchaincoop/eigenlayer:dev-f355265
     env_file:
       - ../envs/bls-local.env
     environment:
