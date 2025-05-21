@@ -32,7 +32,7 @@ contract RegistryCoordinatorMimic is
     IMiddlewareShimTypes
 {
     struct StateUpdateProof {
-        uint256 blockNumber;
+        uint256 slotNumber;
         bytes32 storageHash;
         bytes[] storageProof;
         bytes[] accountProof;
@@ -63,7 +63,7 @@ contract RegistryCoordinatorMimic is
         require(middlewareData.blockNumber > lastBlockNumber, MiddlewareDataBlockNumberTooOld());
 
         // REVIEW: It's possible to update the middleware data to a newer one that's not necessarily the newest one
-        // E.g.: MiddlewareData transtitions: S1 (block:100) -> S2 (block:200) -> S3 (block:300)
+        // E.g.: MiddlewareData transtitions: S1 (slot:100) -> S2 (slot:200) -> S3 (slot:300)
         // If S1 is the latest registered middleware data, and S3 is the latest update on the L1, a proof for S2 will be accepted
         // -----------------------------------------------------------------------------------------------------------------
         // This matters if we want a recent state update to imply the middlewareData is not stale,
@@ -275,8 +275,8 @@ contract RegistryCoordinatorMimic is
     // I hate making this function virtual but I need to do so I can mock it in tests
     function _verifyProof(bytes32 middlewareDataHash, bytes calldata proof) internal virtual {
         StateUpdateProof memory stateUpdateProof = abi.decode(proof, (StateUpdateProof));
-        bytes32 executionStateRoot = LITE_CLIENT.executionStateRoots(stateUpdateProof.blockNumber);
-        require(executionStateRoot != bytes32(0), MissingExecutionStateRoot(stateUpdateProof.blockNumber));
+        bytes32 executionStateRoot = LITE_CLIENT.executionStateRoots(stateUpdateProof.slotNumber);
+        require(executionStateRoot != bytes32(0), MissingExecutionStateRoot(stateUpdateProof.slotNumber));
 
         // verify the storage proof
         bytes memory key = abi.encode(MIDDLEWARE_DATA_HASH_SLOT);

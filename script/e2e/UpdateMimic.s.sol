@@ -13,7 +13,8 @@ import {SP1HeliosMock} from "./SP1HeliosMock.sol";
 
 contract UpdateMimic is Script {
     struct Proof {
-        uint256 blockNumber;
+        uint256 middlewareBlockNumber;
+        uint256 slotNumber;
         bytes32 storageHash;
         bytes32 executionStateRoot;
         bytes[] storageProof;
@@ -34,20 +35,20 @@ contract UpdateMimic is Script {
 
         vm.createSelectFork(vm.envString("L1_RPC_URL"));
         IMiddlewareShim middlewareShim = IMiddlewareShim(middlewareShimAddress);
-        IMiddlewareShim.MiddlewareData memory middlewareData = middlewareShim.getMiddlewareData(middlewareShim.registryCoordinator(), uint32(proof.blockNumber));
+        IMiddlewareShim.MiddlewareData memory middlewareData = middlewareShim.getMiddlewareData(middlewareShim.registryCoordinator(), uint32(proof.middlewareBlockNumber));
 
         vm.createSelectFork(vm.envString("L2_RPC_URL"));
         vm.startBroadcast(deployerPrivateKey);
 
         if (isMockSP1Helios) {
             SP1HeliosMock sp1helios = SP1HeliosMock(address(RegistryCoordinatorMimic(registryCoordinatorMimic).LITE_CLIENT()));
-            sp1helios.setExecutionStateRoot(proof.blockNumber, proof.executionStateRoot);
+            sp1helios.setExecutionStateRoot(proof.slotNumber, proof.executionStateRoot);
         }
 
         // TODO: run proof verification in script before calling update state
 
         RegistryCoordinatorMimic.StateUpdateProof memory stateUpdateProof = RegistryCoordinatorMimic.StateUpdateProof({
-            blockNumber: proof.blockNumber,
+            slotNumber: proof.slotNumber,
             storageHash: proof.storageHash,
             storageProof: proof.storageProof,
             accountProof: proof.accountProof
@@ -59,7 +60,8 @@ contract UpdateMimic is Script {
 
     function _constructProof(string memory proofFile) internal view returns (Proof memory proof) {
         string memory json = vm.readFile(proofFile);
-        proof.blockNumber = stdJson.readUint(json, ".blockNumber");
+        proof.middlewareBlockNumber = stdJson.readUint(json, ".middlewareBlockNumber");
+        proof.slotNumber = stdJson.readUint(json, ".slotNumber");
         proof.storageHash = stdJson.readBytes32(json, ".storageHash");
         proof.executionStateRoot = stdJson.readBytes32(json, ".executionStateRoot");
         proof.storageProof = stdJson.readBytesArray(json, ".storageProof");

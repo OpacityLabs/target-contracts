@@ -12,6 +12,7 @@ import {IMiddlewareShim} from "./interfaces/IMiddlewareShim.sol";
 
 contract MiddlewareShim is IMiddlewareShim {
     bytes32 public middlewareDataHash;
+    uint256 public lastBlockNumber;
     ISlashingRegistryCoordinator public registryCoordinator;
 
     constructor(ISlashingRegistryCoordinator _registryCoordinator) {
@@ -23,6 +24,7 @@ contract MiddlewareShim is IMiddlewareShim {
         // assume there is only one quorum 0
         MiddlewareData memory middlewareData = getMiddlewareData(registryCoordinator, uint32(block.number));
         middlewareDataHash = keccak256(abi.encode(middlewareData));
+        lastBlockNumber = block.number;
     }
 
     function getMiddlewareData(ISlashingRegistryCoordinator _registryCoordinator, uint32 blockNumber)
