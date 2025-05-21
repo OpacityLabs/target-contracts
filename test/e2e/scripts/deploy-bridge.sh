@@ -5,7 +5,7 @@ cd $SCRIPT_DIR
 source ../envs/bls-local.env
 cd "$SCRIPT_DIR"/../../..
 
-AVS_DEPLOYMENT_PATH="$SCRIPT_DIR"/../eigenlayer-bls-local/.nodes/avs_deploy.json
+AVS_DEPLOYMENT_PATH="$SCRIPT_DIR"/../docker/.nodes/avs_deploy.json
 # Check if AVS deployment file exists and contains valid JSON
 if [ ! -f "$AVS_DEPLOYMENT_PATH" ]; then
     echo "Error: AVS deployment file not found at $AVS_DEPLOYMENT_PATH"

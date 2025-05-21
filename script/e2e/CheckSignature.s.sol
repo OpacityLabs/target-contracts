@@ -27,7 +27,7 @@ contract CheckSignature is Script {
     }
 
     // TODO: move to env
-    string constant OPERATOR_KEYS_DIR = "test/e2e/eigenlayer-bls-local/.nodes/operator_keys/";
+    string constant OPERATOR_KEYS_DIR = "test/e2e/docker/.nodes/operator_keys/";
 
     // TODO: does not support dynamic operator counts
     function run() external {

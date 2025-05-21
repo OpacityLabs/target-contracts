@@ -7,7 +7,7 @@ source ../envs/bls-local.env
 # Read addresses from deployment files
 L1_DEPLOY_PATH="${SCRIPT_DIR}/artifacts/l1-deploy.json"
 L2_DEPLOY_PATH="${SCRIPT_DIR}/artifacts/l2-deploy.json"
-AVS_DEPLOYMENT_PATH="$SCRIPT_DIR"/../eigenlayer-bls-local/.nodes/avs_deploy.json
+AVS_DEPLOYMENT_PATH="$SCRIPT_DIR"/../docker/.nodes/avs_deploy.json
 
 REGISTRY_COORDINATOR_ADDRESS=$(jq -r '.addresses.registryCoordinator' "$AVS_DEPLOYMENT_PATH")
 BLS_SIGNATURE_CHECKER_ADDRESS=$(cat $L2_DEPLOY_PATH | jq -r '.blsSignatureChecker')
