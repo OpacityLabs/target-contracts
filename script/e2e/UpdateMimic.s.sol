@@ -8,7 +8,7 @@ import {SP1Helios} from "@sp1-helios/SP1Helios.sol";
 import {BLSSignatureChecker} from "@eigenlayer-middleware/BLSSignatureChecker.sol";
 import {IMiddlewareShim, IMiddlewareShimTypes} from "../../src/interfaces/IMiddlewareShim.sol";
 import {stdJson} from "forge-std/StdJson.sol";
-import {SP1HeliosMock} from "./SP1HeliosMock.sol";
+import {SP1HeliosMock} from "./contracts/SP1HeliosMock.sol";
 
 
 contract UpdateMimic is Script {

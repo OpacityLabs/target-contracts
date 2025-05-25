@@ -6,7 +6,7 @@ import {RegistryCoordinatorMimic} from "../../src/RegistryCoordinatorMimic.sol";
 import {SP1Helios} from "@sp1-helios/SP1Helios.sol";
 import {BLSSignatureChecker} from "@eigenlayer-middleware/BLSSignatureChecker.sol";
 import {ISlashingRegistryCoordinator} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
-import {SP1HeliosMock} from "./SP1HeliosMock.sol";
+import {SP1HeliosMock} from "./contracts/SP1HeliosMock.sol";
 
 contract DeployL2 is Script {
     function setUp() public {}
