@@ -13,6 +13,12 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $SCRIPT_DIR
 source ../envs/bls-local.env
 
+if [ "$IS_SP1HELIOS_MOCK" = "1" ]; then
+    echo "SP1Helios is mocked, not using slot number" >&2
+    echo 0
+    exit 0
+fi
+
 poll_contract_for_new_head() {
     local contract_address=$1
     local rpc_url=$2
