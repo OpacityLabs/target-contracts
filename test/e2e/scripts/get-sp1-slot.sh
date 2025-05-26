@@ -19,6 +19,8 @@ if [ "$IS_SP1HELIOS_MOCK" = "1" ]; then
     exit 0
 fi
 
+TARGET_BLOCK_NUMBER=$(cast block latest --rpc-url $L1_RPC_URL --json | jq -r '.number' | cast to-dec)
+
 poll_contract_for_new_head() {
     local contract_address=$1
     local rpc_url=$2
@@ -34,8 +36,19 @@ poll_contract_for_new_head() {
         # Check if head has changed
         if [ "$current_head" != "$initial_head" ]; then
             echo "Found new head: $current_head" >&2
-            echo "$current_head"
-            return 0
+            
+            # Get the execution block number for this slot
+            local execution_block_number=$(curl --request GET --url ${BEACON_CHAIN_RPC}/eth/v2/beacon/blocks/${current_head} | jq -r ".data.message.body.execution_payload.block_number")
+            
+            # Check if the execution block number is greater than target
+            if [ "$execution_block_number" -gt "$TARGET_BLOCK_NUMBER" ]; then
+                echo "Found slot with execution block number $execution_block_number > $TARGET_BLOCK_NUMBER" >&2
+                echo "$current_head"
+                return 0
+            else
+                echo "Slot $current_head has execution block number $execution_block_number <= $TARGET_BLOCK_NUMBER, continuing to poll..." >&2
+                initial_head=$current_head
+            fi
         fi
         
         echo "Waiting for new head... Current head: $current_head" >&2
