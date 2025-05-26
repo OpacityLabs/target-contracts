@@ -8,7 +8,7 @@
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $SCRIPT_DIR
-source ../envs/bls-local.env
+source ../envs/bls-testnet.env
 
 # TODO: Consider moving this to a separate script
 if [ "$IS_SP1HELIOS_MOCK" = "1" ]; then

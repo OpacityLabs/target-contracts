@@ -2,7 +2,7 @@
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $SCRIPT_DIR
-source ../envs/bls-local.env
+source ../envs/bls-testnet.env
 
 # Set PROOF_FILE relative to project root
 PROOF_FILE="${SCRIPT_DIR}/artifacts/middlewareDataProof.json"

@@ -2,7 +2,7 @@
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $SCRIPT_DIR
-source ../envs/bls-local.env
+source ../envs/bls-testnet.env
 
 L1_DEPLOY_PATH="./artifacts/l1-deploy.json"
 
