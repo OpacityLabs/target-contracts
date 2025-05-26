@@ -8,9 +8,9 @@ import {stdJson} from "forge-std/StdJson.sol";
 import {BLSSigCheckOperatorStateRetriever} from "@eigenlayer-middleware/unaudited/BLSSigCheckOperatorStateRetriever.sol";
 import {Bytes} from "@openzeppelin-utils/Bytes.sol";
 import {Strings} from "@openzeppelin-utils/Strings.sol";
-import {BLSSignatureChecker} from "@eigenlayer-middleware/BLSSignatureChecker.sol";
 import {IBLSSignatureCheckerTypes} from "@eigenlayer-middleware/interfaces/IBLSSignatureChecker.sol";
 import {ISlashingRegistryCoordinator} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
+import {SignatureConsumer} from "./contracts/SignatureConsumer.sol";
 
 contract CheckSignature is Script {
     using BN254 for BN254.G1Point;
@@ -32,8 +32,8 @@ contract CheckSignature is Script {
     // TODO: does not support dynamic operator counts
     function run() external {
         address registryCoordinator = vm.envAddress("REGISTRY_COORDINATOR_ADDRESS");
-        address blsSignatureChecker = vm.envAddress("BLS_SIGNATURE_CHECKER_ADDRESS");
         address stateRetriever = vm.envAddress("STATE_RETRIEVER_ADDRESS");
+        address signatureConsumer = vm.envAddress("SIGNATURE_CONSUMER_ADDRESS");
 
         // Read operator keys from files
         Operator memory operator1 = _readOperatorFromFile("testacc1");
@@ -43,7 +43,7 @@ contract CheckSignature is Script {
         // Create a message to sign
         bytes32 messageHash = bytes32(uint256(0x1234));
 
-        // // Sign the message with BLS
+        // Sign the message with BLS
         BN254.G1Point memory s1 = _signBLSMessage(operator1, messageHash);
         BN254.G1Point memory s2 = _signBLSMessage(operator2, messageHash);
         BN254.G1Point memory s3 = _signBLSMessage(operator3, messageHash);
@@ -65,12 +65,14 @@ contract CheckSignature is Script {
         );
 
         vm.createSelectFork(vm.envString("L2_RPC_URL"));
-        (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals,) = BLSSignatureChecker(blsSignatureChecker).checkSignatures(
+        vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
+        IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals = SignatureConsumer(signatureConsumer).verifySignatureAndEmit(
             messageHash,
             hex"00",
             uint32(block.number - 1),
             nonSignerStakesAndSignature
         );
+        vm.stopBroadcast();
         console.log("Signature check passed");
         console.log("Quorum stake totals:");
         console.log("Signed stake for quorum 0:", quorumStakeTotals.signedStakeForQuorum[0]);

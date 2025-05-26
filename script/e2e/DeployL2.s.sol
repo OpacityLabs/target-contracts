@@ -7,6 +7,7 @@ import {SP1Helios} from "@sp1-helios/SP1Helios.sol";
 import {BLSSignatureChecker} from "@eigenlayer-middleware/BLSSignatureChecker.sol";
 import {ISlashingRegistryCoordinator} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
 import {SP1HeliosMock} from "./contracts/SP1HeliosMock.sol";
+import {SignatureConsumer} from "./contracts/SignatureConsumer.sol";
 
 contract DeployL2 is Script {
     function setUp() public {}
@@ -33,8 +34,12 @@ contract DeployL2 is Script {
         BLSSignatureChecker blsSignatureChecker = new BLSSignatureChecker(ISlashingRegistryCoordinator(address(registryCoordinatorMimic)));
         console.log("BLSSignatureChecker deployed at:", address(blsSignatureChecker));
 
+        SignatureConsumer signatureConsumer = new SignatureConsumer(address(blsSignatureChecker));
+        console.log("SignatureConsumer deployed at:", address(signatureConsumer));
+
         string memory json = vm.serializeAddress("object key", "registryCoordinatorMimic", address(registryCoordinatorMimic));
         json = vm.serializeAddress("object key", "blsSignatureChecker", address(blsSignatureChecker));
+        json = vm.serializeAddress("object key", "signatureConsumer", address(signatureConsumer));
         vm.writeFile(outPath, json);
         console.log("Deployment info written to", outPath);
 
