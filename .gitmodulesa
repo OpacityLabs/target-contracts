@@ -4,12 +4,13 @@
 [submodule "contracts/lib/sp1-helios"]
 	path = contracts/lib/sp1-helios
 	url = https://github.com/succinctlabs/sp1-helios
+[submodule "contracts/lib/eigenlayer-middleware"]
+	path = contracts/lib/eigenlayer-middleware
+	url = https://github.com/BreadchainCoop/eigenlayer-middleware
+	branch = on-chain-check-signatures
 [submodule "contracts/lib/openzeppelin-contracts"]
 	path = contracts/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "contracts/lib/eigenlayer-middleware"]
-	path = contracts/lib/eigenlayer-middleware
-	url = https://github.com/Layr-Labs/eigenlayer-middleware
 [submodule "contracts/lib/optimism"]
 	path = contracts/lib/optimism
 	url = https://github.com/ethereum-optimism/optimism
