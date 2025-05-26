@@ -69,7 +69,26 @@ export IS_SP1HELIOS_MOCK=$IS_SP1HELIOS_MOCK
 # Error: Multi chain deployment does not support library linking at the moment. #
 #-------------------------------------------------------------------------------#
 
-forge script DeployL1 --broadcast --rpc-url $L1_RPC_URL
+# Deploy L1 contracts
+if [ ! -z "$L1_ETHERSCAN_API_KEY" ]; then
+    forge script DeployL1 --broadcast --rpc-url $L1_RPC_URL --verify --etherscan-api-key $L1_ETHERSCAN_API_KEY
+else
+    forge script DeployL1 --broadcast --rpc-url $L1_RPC_URL
+fi
+
 export MIDDLEWARE_SHIM_ADDRESS=$(jq -r '.middlewareShim' "$L1_OUT_PATH")
 export SP1HELIOS_ADDRESS=$SP1HELIOS_ADDRESS
-forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL
+
+# Deploy L2 contracts
+if [ ! -z "$L2_ETHERSCAN_API_KEY" ]; then
+    # This fails to verify QuorumBitmapHistoryLib because it's an external library and you need to link it with --libraries flag
+    # I tried doing that but then it failed to verify the mimic, because it's somehow affected the verification of the RLP library
+    # My guess is that maybe there is some weird issue with mixing external and internal libraries when it comes to solc, but I don't knoq
+
+    # TODO: Find solution: Either fix the verification of the QuorumBitmapHistoryLib or find a way to detect the script's etherscan verification failed
+    # forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL --verify --etherscan-api-key $L2_ETHERSCAN_API_KEY
+
+    forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL
+else
+    forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL
+fi
