@@ -1,0 +1,16 @@
+services:
+  e2e-test:
+    build:
+      context: ../../
+      dockerfile: ./e2e/docker/Dockerfile
+    volumes:
+      - ./.nodes:/app/contracts/.nodes
+      - ./artifacts:/app/contracts/artifacts
+      - ../envs:/app/envs
+    environment:
+      - IS_DOCKER=true
+      - E2E_ENV_FILE=/app/envs/bls-testnet.env
+      - NODES_DIR=/app/contracts/.nodes
+      - SCRIPTS_DIR=/app/scripts
+      - ARTIFACTS_DIR=/app/contracts/artifacts
+      - FOUNDRY_ROOT_DIR=/app/contracts

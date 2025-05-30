@@ -8,10 +8,11 @@
 # Useful for testing cast logs polling
 # ADDRESS=0x0000000071727De22E5E9d8BAf0edAc6f37da032
 
+# Exit on any error
+set -e
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd $SCRIPT_DIR
-source ../envs/bls-testnet.env
+cd "$(dirname "${BASH_SOURCE[0]}")"
+source config.sh
 
 if [ "$IS_SP1HELIOS_MOCK" = "1" ]; then
     echo "SP1Helios is mocked, not using slot number" >&2

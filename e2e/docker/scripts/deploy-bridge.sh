@@ -1,11 +1,13 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd $SCRIPT_DIR
-source ../envs/bls-testnet.env
-cd "$SCRIPT_DIR"/../../..
+# Exit on any error
+set -e
 
-AVS_DEPLOYMENT_PATH="$SCRIPT_DIR"/../docker/.nodes/avs_deploy.json
+source $SCRIPTS_DIR/config.sh
+
+cd "$FOUNDRY_ROOT_DIR"
+
+AVS_DEPLOYMENT_PATH="$NODES_DIR/avs_deploy.json"
 # Check if AVS deployment file exists and contains valid JSON
 if [ ! -f "$AVS_DEPLOYMENT_PATH" ]; then
     echo "Error: AVS deployment file not found at $AVS_DEPLOYMENT_PATH"
@@ -35,32 +37,10 @@ if [ -z "$L2_RPC_URL" ]; then
     exit 1
 fi
 
-if [ "$ENVIRONMENT" = "TESTNET" ]; then
-    if [ -z "$FUNDED_KEY" ]; then
-        echo "Error: FUNDED_KEY is not set in the environment variables. This is required for testnet."
-        exit 1
-    fi
-    DEPLOYER_KEY=$FUNDED_KEY
-else
-    DEPLOYER_INFO=$(cast wallet new --json)
-    DEPLOYER_KEY=$(echo "$DEPLOYER_INFO" | jq -r '.[0].private_key')
-    DEPLOYER_ADDRESS=$(echo "$DEPLOYER_INFO" | jq -r '.[0].address')
-    cast rpc anvil_setBalance $DEPLOYER_ADDRESS 0x10000000000000000000 --rpc-url $L1_RPC_URL > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to set balance for deployer account"
-        exit 1
-    fi
-    cast rpc anvil_setBalance $DEPLOYER_ADDRESS 0x10000000000000000000 --rpc-url $L2_RPC_URL > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to set balance for deployer account"
-        exit 1
-    fi
-fi
-
 export REGISTRY_COORDINATOR_ADDRESS=$(jq -r '.addresses.registryCoordinator' "$AVS_DEPLOYMENT_PATH")
 export PRIVATE_KEY=$DEPLOYER_KEY
-export L1_OUT_PATH=$SCRIPT_DIR/artifacts/l1-deploy.json
-export L2_OUT_PATH=$SCRIPT_DIR/artifacts/l2-deploy.json
+export L1_OUT_PATH="$ARTIFACTS_DIR/l1-deploy.json"
+export L2_OUT_PATH="$ARTIFACTS_DIR/l2-deploy.json"
 export IS_SP1HELIOS_MOCK=$IS_SP1HELIOS_MOCK
 
 # We use two separate scripts this way because EigenLayer's QuorumBitmapHistoryLib is an external library,
@@ -71,12 +51,12 @@ export IS_SP1HELIOS_MOCK=$IS_SP1HELIOS_MOCK
 
 # Deploy L1 contracts
 if [ ! -z "$L1_ETHERSCAN_API_KEY" ]; then
-    forge script DeployL1 --broadcast --rpc-url $L1_RPC_URL --verify --etherscan-api-key $L1_ETHERSCAN_API_KEY
+    forge script DeployL1 --broadcast --rpc-url $L1_RPC_URL --verify --etherscan-api-key $L1_ETHERSCAN_API_KEY | silent_success
 else
-    forge script DeployL1 --broadcast --rpc-url $L1_RPC_URL
+    forge script DeployL1 --broadcast --rpc-url $L1_RPC_URL | silent_success
 fi
 
-export MIDDLEWARE_SHIM_ADDRESS=$(jq -r '.middlewareShim' "$L1_OUT_PATH")
+export MIDDLEWARE_SHIM_ADDRESS=$(cat $L1_OUT_PATH | jq -r '.middlewareShim')
 export SP1HELIOS_ADDRESS=$SP1HELIOS_ADDRESS
 
 # Deploy L2 contracts
@@ -88,7 +68,7 @@ if [ ! -z "$L2_ETHERSCAN_API_KEY" ]; then
     # TODO: Find solution: Either fix the verification of the QuorumBitmapHistoryLib or find a way to detect the script's etherscan verification failed
     # forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL --verify --etherscan-api-key $L2_ETHERSCAN_API_KEY
 
-    forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL
+    forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL | silent_success
 else
-    forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL
+    forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL | silent_success
 fi

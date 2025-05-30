@@ -1,15 +1,16 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd $SCRIPT_DIR
-source ../envs/bls-testnet.env
+# Exit on any error
+set -e
 
-# Set PROOF_FILE relative to project root
-PROOF_FILE="${SCRIPT_DIR}/artifacts/middlewareDataProof.json"
+source $SCRIPTS_DIR/config.sh
+
+# Set PROOF_FILE relative to artifacts directory
+PROOF_FILE="$ARTIFACTS_DIR/middlewareDataProof.json"
 
 # Read addresses from deployment files
-L1_DEPLOY_PATH="${SCRIPT_DIR}/artifacts/l1-deploy.json"
-L2_DEPLOY_PATH="${SCRIPT_DIR}/artifacts/l2-deploy.json"
+L1_DEPLOY_PATH="$ARTIFACTS_DIR/l1-deploy.json"
+L2_DEPLOY_PATH="$ARTIFACTS_DIR/l2-deploy.json"
 
 REGISTRY_COORDINATOR_MIMIC_ADDRESS=$(cat $L2_DEPLOY_PATH | jq -r '.registryCoordinatorMimic')
 BLS_SIGNATURE_CHECKER_ADDRESS=$(cat $L2_DEPLOY_PATH | jq -r '.blsSignatureChecker')
@@ -39,10 +40,11 @@ export MIDDLEWARE_SHIM_ADDRESS
 export IS_SP1HELIOS_MOCK
 export L1_RPC_URL
 export L2_RPC_URL
-export PRIVATE_KEY
+export PRIVATE_KEY=$DEPLOYER_KEY
 
 # Run the Forge script with required environment variables
-cd $SCRIPT_DIR/../../../
+cd "$FOUNDRY_ROOT_DIR"
+echo "Updating middleware shim with latest data hash..."
 forge script script/e2e/UpdateMimic.s.sol:UpdateMimic \
     --broadcast \
-    -vvvv
+    -vvvv | silent_success

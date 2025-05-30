@@ -1,13 +1,15 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd $SCRIPT_DIR
-source ../envs/bls-testnet.env
+# Exit on any error
+set -e
+
+cd "$(dirname "${BASH_SOURCE[0]}")"
+source config.sh
 
 # Read addresses from deployment files
-L1_DEPLOY_PATH="${SCRIPT_DIR}/artifacts/l1-deploy.json"
-L2_DEPLOY_PATH="${SCRIPT_DIR}/artifacts/l2-deploy.json"
-AVS_DEPLOYMENT_PATH="$SCRIPT_DIR"/../docker/.nodes/avs_deploy.json
+L1_DEPLOY_PATH="$ARTIFACTS_DIR/l1-deploy.json"
+L2_DEPLOY_PATH="$ARTIFACTS_DIR/l2-deploy.json"
+AVS_DEPLOYMENT_PATH="$NODES_DIR/avs_deploy.json"
 
 REGISTRY_COORDINATOR_ADDRESS=$(jq -r '.addresses.registryCoordinator' "$AVS_DEPLOYMENT_PATH")
 SIGNATURE_CONSUMER_ADDRESS=$(cat $L2_DEPLOY_PATH | jq -r '.signatureConsumer')
@@ -35,10 +37,12 @@ export SIGNATURE_CONSUMER_ADDRESS
 export STATE_RETRIEVER_ADDRESS
 export L1_RPC_URL
 export L2_RPC_URL
-export PRIVATE_KEY
+export PRIVATE_KEY=$DEPLOYER_KEY
+export OPERATOR_KEYS_DIR="$NODES_DIR/operator_keys/"
 
 # Run the Forge script with required environment variables
-cd $SCRIPT_DIR/../../../
+cd "$FOUNDRY_ROOT_DIR"
+echo "Running check signatures..."
 forge script CheckSignature \
     --rpc-url $L2_RPC_URL \
-    --broadcast
+    --broadcast | silent_success

@@ -18,7 +18,6 @@ contract CheckSignature is Script {
     using Bytes for bytes;
     using Strings for string;
 
-    // TODO: replace with Operator struct I have somewhere else 
     struct Operator {
         address operator;
         uint256 blsPrivateKey;
@@ -26,87 +25,158 @@ contract CheckSignature is Script {
         BN254.G2Point pk2;
     }
 
-    // TODO: move to env
-    string constant OPERATOR_KEYS_DIR = "test/e2e/docker/.nodes/operator_keys/";
+    // does all these weird structs to avoid stack too deep errors
+    struct ContractAddresses {
+        address registryCoordinator;
+        address stateRetriever;
+        address signatureConsumer;
+    }
+
+    struct OperatorData {
+        Operator operator1;
+        Operator operator2;
+        Operator operator3;
+        address[] operatorAddresses;
+    }
+
+    struct SignatureData {
+        bytes32 messageHash;
+        BN254.G1Point s1;
+        BN254.G1Point s2;
+        BN254.G1Point s3;
+        BN254.G1Point sigma;
+    }
+
+    struct ScriptConfig {
+        string operatorKeysDir;
+        uint32 blockNumber;
+    }
 
     // TODO: does not support dynamic operator counts
     function run() external {
-        address registryCoordinator = vm.envAddress("REGISTRY_COORDINATOR_ADDRESS");
-        address stateRetriever = vm.envAddress("STATE_RETRIEVER_ADDRESS");
-        address signatureConsumer = vm.envAddress("SIGNATURE_CONSUMER_ADDRESS");
+        ContractAddresses memory contracts = ContractAddresses({
+            registryCoordinator: vm.envAddress("REGISTRY_COORDINATOR_ADDRESS"),
+            stateRetriever: vm.envAddress("STATE_RETRIEVER_ADDRESS"),
+            signatureConsumer: vm.envAddress("SIGNATURE_CONSUMER_ADDRESS")
+        });
+
+        ScriptConfig memory config = ScriptConfig({
+            operatorKeysDir: vm.envString("OPERATOR_KEYS_DIR"),
+            blockNumber: 0 // Will be set later
+        });
 
         // Read operator keys from files
-        Operator memory operator1 = _readOperatorFromFile("testacc1");
-        Operator memory operator2 = _readOperatorFromFile("testacc2");
-        Operator memory operator3 = _readOperatorFromFile("testacc3");
+        OperatorData memory operatorData;
+        operatorData.operator1 = _readOperatorFromFile("testacc1", config.operatorKeysDir);
+        operatorData.operator2 = _readOperatorFromFile("testacc2", config.operatorKeysDir);
+        operatorData.operator3 = _readOperatorFromFile("testacc3", config.operatorKeysDir);
 
         // Create a message to sign
-        bytes32 messageHash = bytes32(uint256(0x1234));
+        SignatureData memory sigData;
+        sigData.messageHash = bytes32(uint256(0x1234));
 
         // Sign the message with BLS
-        BN254.G1Point memory s1 = _signBLSMessage(operator1, messageHash);
-        BN254.G1Point memory s2 = _signBLSMessage(operator2, messageHash);
-        BN254.G1Point memory s3 = _signBLSMessage(operator3, messageHash);
+        sigData.s1 = _signBLSMessage(operatorData.operator1, sigData.messageHash);
+        sigData.s2 = _signBLSMessage(operatorData.operator2, sigData.messageHash);
+        sigData.s3 = _signBLSMessage(operatorData.operator3, sigData.messageHash);
 
-        BN254.G1Point memory sigma = s1.plus(s2).plus(s3);
+        sigData.sigma = sigData.s1.plus(sigData.s2).plus(sigData.s3);
 
         vm.createSelectFork(vm.envString("L1_RPC_URL"));
-        address[] memory operators = new address[](3);
-        operators[0] = operator1.operator;
-        operators[1] = operator2.operator;
-        operators[2] = operator3.operator;
+        
+        operatorData.operatorAddresses = new address[](3);
+        operatorData.operatorAddresses[0] = operatorData.operator1.operator;
+        operatorData.operatorAddresses[1] = operatorData.operator2.operator;
+        operatorData.operatorAddresses[2] = operatorData.operator3.operator;
 
-        IBLSSignatureCheckerTypes.NonSignerStakesAndSignature memory nonSignerStakesAndSignature = BLSSigCheckOperatorStateRetriever(stateRetriever).getNonSignerStakesAndSignature(
-            ISlashingRegistryCoordinator(registryCoordinator),
+        config.blockNumber = uint32(block.number - 1);
+
+        IBLSSignatureCheckerTypes.NonSignerStakesAndSignature memory nonSignerStakesAndSignature = 
+            _getNonSignerStakesAndSignature(contracts, sigData, operatorData, config);
+
+        _verifySignatureOnL2(contracts, sigData, config, nonSignerStakesAndSignature);
+    }
+
+    function _getNonSignerStakesAndSignature(
+        ContractAddresses memory contracts,
+        SignatureData memory sigData,
+        OperatorData memory operatorData,
+        ScriptConfig memory config
+    ) internal returns (IBLSSignatureCheckerTypes.NonSignerStakesAndSignature memory) {
+        return BLSSigCheckOperatorStateRetriever(contracts.stateRetriever).getNonSignerStakesAndSignature(
+            ISlashingRegistryCoordinator(contracts.registryCoordinator),
             hex"00",
-            sigma,
-            operators,
-            uint32(block.number - 1)
+            sigData.sigma,
+            operatorData.operatorAddresses,
+            config.blockNumber
         );
+    }
 
+    function _verifySignatureOnL2(
+        ContractAddresses memory contracts,
+        SignatureData memory sigData,
+        ScriptConfig memory config,
+        IBLSSignatureCheckerTypes.NonSignerStakesAndSignature memory nonSignerStakesAndSignature
+    ) internal {
         vm.createSelectFork(vm.envString("L2_RPC_URL"));
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
-        IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals = SignatureConsumer(signatureConsumer).verifySignatureAndEmit(
-            messageHash,
-            hex"00",
-            uint32(block.number - 1),
-            nonSignerStakesAndSignature
-        );
+        
+        IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals = 
+            SignatureConsumer(contracts.signatureConsumer).verifySignatureAndEmit(
+                sigData.messageHash,
+                hex"00",
+                config.blockNumber,
+                nonSignerStakesAndSignature
+            );
+        
         vm.stopBroadcast();
+        
         console.log("Signature check passed");
         console.log("Quorum stake totals:");
         console.log("Signed stake for quorum 0:", quorumStakeTotals.signedStakeForQuorum[0]);
         console.log("Total stake for quorum 0:", quorumStakeTotals.totalStakeForQuorum[0]);
     }
 
-    function _readOperatorFromFile(string memory operatorName) internal view returns (Operator memory) {
-        // Read private BLS key
-        string memory privateKeyPath = string.concat(OPERATOR_KEYS_DIR, operatorName, ".private.bls.key.json");
-        string memory privateKeyJson = vm.readFile(privateKeyPath);
-        uint256 blsPrivateKey = privateKeyJson.readUint(".privateKey");
-
-        // Read public BLS key
-        string memory publicKeyPath = string.concat(OPERATOR_KEYS_DIR, operatorName, ".bls.key.json");
-        string memory publicKeyJson = vm.readFile(publicKeyPath);
-        string memory pubKeyStr = publicKeyJson.readString(".pubKey");
-
-        // Parse the public key string to get G1 point
-        // The format is "E([x,y])" where x,y are the coordinates in decimal
-        uint256 commaIndex = bytes(pubKeyStr).indexOf(bytes1(uint8(44)));
-        uint256 x = pubKeyStr.parseUint(3, commaIndex);
-        uint256 y = pubKeyStr.parseUint(commaIndex + 1, bytes(pubKeyStr).length - 2);
-
-        BN254.G1Point memory pk1 = BN254.G1Point(x, y);
-        
-        // Generate G2 point from private key
-        BN254.G2Point memory g2 = BN254.generatorG2();
+    function _readOperatorFromFile(string memory operatorName, string memory operatorKeysDir) internal view returns (Operator memory) {
+        uint256 blsPrivateKey;
+        BN254.G1Point memory pk1;
         BN254.G2Point memory pk2;
-        (pk2.X[1], pk2.X[0], pk2.Y[1], pk2.Y[0]) = BN256G2.ECTwistMul(blsPrivateKey, g2.X[1], g2.X[0], g2.Y[1], g2.Y[0]);
+        address operatorAddress;
 
-        // Read operator address from ECDSA key file
-        string memory ecdsaKeyPath = string.concat(OPERATOR_KEYS_DIR, operatorName, ".ecdsa.key.json");
-        string memory ecdsaKeyJson = vm.readFile(ecdsaKeyPath);
-        address operatorAddress = ecdsaKeyJson.readAddress(".address");
+        // Read private BLS key in its own scope
+        {
+            string memory privateKeyPath = string.concat(operatorKeysDir, operatorName, ".private.bls.key.json");
+            string memory privateKeyJson = vm.readFile(privateKeyPath);
+            blsPrivateKey = privateKeyJson.readUint(".privateKey");
+        }
+
+        // Read and parse public BLS key in its own scope
+        {
+            string memory publicKeyPath = string.concat(operatorKeysDir, operatorName, ".bls.key.json");
+            string memory publicKeyJson = vm.readFile(publicKeyPath);
+            string memory pubKeyStr = publicKeyJson.readString(".pubKey");
+
+            // Parse the public key string to get G1 point
+            // The format is "E([x,y])" where x,y are the coordinates in decimal
+            uint256 commaIndex = bytes(pubKeyStr).indexOf(bytes1(uint8(44)));
+            uint256 x = pubKeyStr.parseUint(3, commaIndex);
+            uint256 y = pubKeyStr.parseUint(commaIndex + 1, bytes(pubKeyStr).length - 2);
+
+            pk1 = BN254.G1Point(x, y);
+        }
+        
+        // Generate G2 point from private key in its own scope
+        {
+            BN254.G2Point memory g2 = BN254.generatorG2();
+            (pk2.X[1], pk2.X[0], pk2.Y[1], pk2.Y[0]) = BN256G2.ECTwistMul(blsPrivateKey, g2.X[1], g2.X[0], g2.Y[1], g2.Y[0]);
+        }
+
+        // Read operator address from ECDSA key file in its own scope
+        {
+            string memory ecdsaKeyPath = string.concat(operatorKeysDir, operatorName, ".ecdsa.key.json");
+            string memory ecdsaKeyJson = vm.readFile(ecdsaKeyPath);
+            operatorAddress = ecdsaKeyJson.readAddress(".address");
+        }
 
         return Operator({
             operator: operatorAddress,
