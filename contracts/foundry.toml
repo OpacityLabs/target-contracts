@@ -14,18 +14,8 @@ remappings = [
 
 # I can't tell why foundry wants the path to be exact but it does not work for me
 fs_permissions = [
-    { access = "read", path = "./" },
-    { access = "write", path = "./" },
-    { access = "read", path = "./artifacts/middlewareDataProof.json" },  # This is stupid
-    { access = "read", path = "./.nodes/operator_keys/testacc1.private.bls.key.json" },
-    { access = "read", path = "./.nodes/operator_keys/testacc1.bls.key.json" },
-    { access = "read", path = "./.nodes/operator_keys/testacc1.ecdsa.key.json" },
-    { access = "read", path = "./.nodes/operator_keys/testacc2.private.bls.key.json" },
-    { access = "read", path = "./.nodes/operator_keys/testacc2.bls.key.json" },
-    { access = "read", path = "./.nodes/operator_keys/testacc2.ecdsa.key.json" },
-    { access = "read", path = "./.nodes/operator_keys/testacc3.private.bls.key.json" },
-    { access = "read", path = "./.nodes/operator_keys/testacc3.bls.key.json" },
-    { access = "read", path = "./.nodes/operator_keys/testacc3.ecdsa.key.json" }
+    { access = "read-write", path = "./artifacts" },
+    { access = "read", path = "./.nodes" }
 ]
 
 [rpc_endpoints]
