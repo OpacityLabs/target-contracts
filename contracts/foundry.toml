@@ -1,0 +1,22 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+remappings = [
+    "@eigenlayer-middleware/=lib/eigenlayer-middleware/src/",
+    "@openzeppelin-utils/=lib/openzeppelin-contracts/contracts/utils/",
+    "@sp1-helios/=lib/sp1-helios/contracts/src/",
+    "@sp1-contracts/=lib/sp1-helios/contracts/lib/sp1-contracts/contracts/src/",
+    "@optimism/=lib/optimism/packages/contracts-bedrock/src/"
+]
+
+# I can't tell why foundry wants the path to be exact but it does not work for me
+fs_permissions = [
+    { access = "read-write", path = "./artifacts" },
+    { access = "read", path = "./.nodes" }
+]
+
+[rpc_endpoints]
+holesky = "https://1rpc.io/holesky"
