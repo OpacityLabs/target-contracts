@@ -3,7 +3,7 @@ services:
     platform: linux/amd64
     image: ghcr.io/breadchaincoop/eigenlayer:dev-f355265
     env_file:
-      - ../envs/bls-local.env
+      - ../envs/bls-testnet.env
     environment:
       - ENVIRONMENT=TESTNET
     volumes:
@@ -19,5 +19,5 @@ services:
     environment:
       - "METRICS_PORT=${CERBERUS_METRICS_PORT}"
     env_file:
-      - ../envs/bls-local.env
+      - ../envs/bls-testnet.env
     restart: unless-stopped
