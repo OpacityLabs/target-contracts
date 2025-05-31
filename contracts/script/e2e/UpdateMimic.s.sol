@@ -10,7 +10,6 @@ import {IMiddlewareShim, IMiddlewareShimTypes} from "../../src/interfaces/IMiddl
 import {stdJson} from "forge-std/StdJson.sol";
 import {SP1HeliosMock} from "./contracts/SP1HeliosMock.sol";
 
-
 contract UpdateMimic is Script {
     struct Proof {
         uint256 middlewareBlockNumber;
@@ -35,13 +34,15 @@ contract UpdateMimic is Script {
 
         vm.createSelectFork(vm.envString("L1_RPC_URL"));
         IMiddlewareShim middlewareShim = IMiddlewareShim(middlewareShimAddress);
-        IMiddlewareShim.MiddlewareData memory middlewareData = middlewareShim.getMiddlewareData(middlewareShim.registryCoordinator(), uint32(proof.middlewareBlockNumber));
+        IMiddlewareShim.MiddlewareData memory middlewareData =
+            middlewareShim.getMiddlewareData(middlewareShim.registryCoordinator(), uint32(proof.middlewareBlockNumber));
 
         vm.createSelectFork(vm.envString("L2_RPC_URL"));
         vm.startBroadcast(deployerPrivateKey);
 
         if (isMockSP1Helios) {
-            SP1HeliosMock sp1helios = SP1HeliosMock(address(RegistryCoordinatorMimic(registryCoordinatorMimic).LITE_CLIENT()));
+            SP1HeliosMock sp1helios =
+                SP1HeliosMock(address(RegistryCoordinatorMimic(registryCoordinatorMimic).LITE_CLIENT()));
             sp1helios.setExecutionStateRoot(proof.slotNumber, proof.executionStateRoot);
         }
 

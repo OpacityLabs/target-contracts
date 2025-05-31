@@ -22,17 +22,11 @@ contract SignatureConsumer {
         uint32 blockNumber,
         IBLSSignatureCheckerTypes.NonSignerStakesAndSignature calldata nonSignerStakesAndSignature
     ) external returns (IBLSSignatureCheckerTypes.QuorumStakeTotals memory) {
-        (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals,) = signatureChecker.checkSignatures(
-            messageHash,
-            quorumNumbers,
-            blockNumber,
-            nonSignerStakesAndSignature
-        );
+        (IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals,) =
+            signatureChecker.checkSignatures(messageHash, quorumNumbers, blockNumber, nonSignerStakesAndSignature);
 
         emit SignatureVerified(
-            messageHash,
-            quorumStakeTotals.signedStakeForQuorum[0],
-            quorumStakeTotals.totalStakeForQuorum[0]
+            messageHash, quorumStakeTotals.signedStakeForQuorum[0], quorumStakeTotals.totalStakeForQuorum[0]
         );
 
         return quorumStakeTotals;

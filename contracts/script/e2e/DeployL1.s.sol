@@ -17,8 +17,7 @@ contract DeployL1 is Script {
         console.log("RegistryCoordinatorAddress:", REGISTRY_COORDINATOR_ADDRESS);
 
         vm.startBroadcast(deployerPrivateKey);
-        MiddlewareShim middlewareShim = 
-            new MiddlewareShim(ISlashingRegistryCoordinator(REGISTRY_COORDINATOR_ADDRESS));
+        MiddlewareShim middlewareShim = new MiddlewareShim(ISlashingRegistryCoordinator(REGISTRY_COORDINATOR_ADDRESS));
         console.log("MiddlewareShim deployed at:", address(middlewareShim));
 
         BLSSigCheckOperatorStateRetriever stateRetriever = new BLSSigCheckOperatorStateRetriever();

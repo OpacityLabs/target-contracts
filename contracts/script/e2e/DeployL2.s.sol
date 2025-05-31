@@ -31,13 +31,15 @@ contract DeployL2 is Script {
             new RegistryCoordinatorMimic(SP1Helios(sp1heliosAddress), address(middlewareShim));
         console.log("RegistryCoordinatorMimic deployed at:", address(registryCoordinatorMimic));
 
-        BLSSignatureChecker blsSignatureChecker = new BLSSignatureChecker(ISlashingRegistryCoordinator(address(registryCoordinatorMimic)));
+        BLSSignatureChecker blsSignatureChecker =
+            new BLSSignatureChecker(ISlashingRegistryCoordinator(address(registryCoordinatorMimic)));
         console.log("BLSSignatureChecker deployed at:", address(blsSignatureChecker));
 
         SignatureConsumer signatureConsumer = new SignatureConsumer(address(blsSignatureChecker));
         console.log("SignatureConsumer deployed at:", address(signatureConsumer));
 
-        string memory json = vm.serializeAddress("object key", "registryCoordinatorMimic", address(registryCoordinatorMimic));
+        string memory json =
+            vm.serializeAddress("object key", "registryCoordinatorMimic", address(registryCoordinatorMimic));
         json = vm.serializeAddress("object key", "blsSignatureChecker", address(blsSignatureChecker));
         json = vm.serializeAddress("object key", "signatureConsumer", address(signatureConsumer));
         vm.writeFile(outPath, json);

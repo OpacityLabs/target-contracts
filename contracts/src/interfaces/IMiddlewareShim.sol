@@ -1,7 +1,10 @@
 pragma solidity ^0.8.12;
 
 import {BN254} from "@eigenlayer-middleware/libraries/BN254.sol";
-import {ISlashingRegistryCoordinator, ISlashingRegistryCoordinatorTypes} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
+import {
+    ISlashingRegistryCoordinator,
+    ISlashingRegistryCoordinatorTypes
+} from "@eigenlayer-middleware/interfaces/ISlashingRegistryCoordinator.sol";
 import {IBLSApkRegistryTypes} from "@eigenlayer-middleware/interfaces/IBLSApkRegistry.sol";
 import {IStakeRegistryTypes} from "@eigenlayer-middleware/interfaces/IStakeRegistry.sol";
 
@@ -36,7 +39,10 @@ interface IMiddlewareShimTypes is ISlashingRegistryCoordinatorTypes, IBLSApkRegi
 interface IMiddlewareShim is IMiddlewareShimTypes {
     function updateMiddlewareDataHash() external;
 
-    function getMiddlewareData(ISlashingRegistryCoordinator _registryCoordinator, uint32 blockNumber) external view returns (MiddlewareData memory);
+    function getMiddlewareData(ISlashingRegistryCoordinator _registryCoordinator, uint32 blockNumber)
+        external
+        view
+        returns (MiddlewareData memory);
 
     function middlewareDataHash() external view returns (bytes32);
 

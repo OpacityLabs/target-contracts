@@ -83,7 +83,7 @@ contract CheckSignature is Script {
         sigData.sigma = sigData.s1.plus(sigData.s2).plus(sigData.s3);
 
         vm.createSelectFork(vm.envString("L1_RPC_URL"));
-        
+
         operatorData.operatorAddresses = new address[](3);
         operatorData.operatorAddresses[0] = operatorData.operator1.operator;
         operatorData.operatorAddresses[1] = operatorData.operator2.operator;
@@ -91,7 +91,7 @@ contract CheckSignature is Script {
 
         config.blockNumber = uint32(block.number - 1);
 
-        IBLSSignatureCheckerTypes.NonSignerStakesAndSignature memory nonSignerStakesAndSignature = 
+        IBLSSignatureCheckerTypes.NonSignerStakesAndSignature memory nonSignerStakesAndSignature =
             _getNonSignerStakesAndSignature(contracts, sigData, operatorData, config);
 
         _verifySignatureOnL2(contracts, sigData, config, nonSignerStakesAndSignature);
@@ -120,24 +120,24 @@ contract CheckSignature is Script {
     ) internal {
         vm.createSelectFork(vm.envString("L2_RPC_URL"));
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
-        
-        IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals = 
-            SignatureConsumer(contracts.signatureConsumer).verifySignatureAndEmit(
-                sigData.messageHash,
-                hex"00",
-                config.blockNumber,
-                nonSignerStakesAndSignature
-            );
-        
+
+        IBLSSignatureCheckerTypes.QuorumStakeTotals memory quorumStakeTotals = SignatureConsumer(
+            contracts.signatureConsumer
+        ).verifySignatureAndEmit(sigData.messageHash, hex"00", config.blockNumber, nonSignerStakesAndSignature);
+
         vm.stopBroadcast();
-        
+
         console.log("Signature check passed");
         console.log("Quorum stake totals:");
         console.log("Signed stake for quorum 0:", quorumStakeTotals.signedStakeForQuorum[0]);
         console.log("Total stake for quorum 0:", quorumStakeTotals.totalStakeForQuorum[0]);
     }
 
-    function _readOperatorFromFile(string memory operatorName, string memory operatorKeysDir) internal view returns (Operator memory) {
+    function _readOperatorFromFile(string memory operatorName, string memory operatorKeysDir)
+        internal
+        view
+        returns (Operator memory)
+    {
         uint256 blsPrivateKey;
         BN254.G1Point memory pk1;
         BN254.G2Point memory pk2;
@@ -164,11 +164,12 @@ contract CheckSignature is Script {
 
             pk1 = BN254.G1Point(x, y);
         }
-        
+
         // Generate G2 point from private key in its own scope
         {
             BN254.G2Point memory g2 = BN254.generatorG2();
-            (pk2.X[1], pk2.X[0], pk2.Y[1], pk2.Y[0]) = BN256G2.ECTwistMul(blsPrivateKey, g2.X[1], g2.X[0], g2.Y[1], g2.Y[0]);
+            (pk2.X[1], pk2.X[0], pk2.Y[1], pk2.Y[0]) =
+                BN256G2.ECTwistMul(blsPrivateKey, g2.X[1], g2.X[0], g2.Y[1], g2.Y[0]);
         }
 
         // Read operator address from ECDSA key file in its own scope
@@ -178,12 +179,7 @@ contract CheckSignature is Script {
             operatorAddress = ecdsaKeyJson.readAddress(".address");
         }
 
-        return Operator({
-            operator: operatorAddress,
-            blsPrivateKey: blsPrivateKey,
-            pk1: pk1,
-            pk2: pk2
-        });
+        return Operator({operator: operatorAddress, blsPrivateKey: blsPrivateKey, pk1: pk1, pk2: pk2});
     }
 
     function _signBLSMessage(Operator memory operator, bytes32 messageHash)
