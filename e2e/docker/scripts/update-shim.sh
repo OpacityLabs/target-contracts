@@ -3,7 +3,8 @@
 # Exit on any error
 set -e
 
-source $SCRIPTS_DIR/config.sh
+source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
+cd "$SCRIPTS_DIR"
 
 cd "$FOUNDRY_ROOT_DIR"
 

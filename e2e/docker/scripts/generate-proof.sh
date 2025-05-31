@@ -9,7 +9,8 @@
 # Exit on any error
 set -e
 
-source $SCRIPTS_DIR/config.sh
+source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
+cd "$SCRIPTS_DIR"
 
 # Check if block number argument is provided
 if [ $# -ne 1 ]; then

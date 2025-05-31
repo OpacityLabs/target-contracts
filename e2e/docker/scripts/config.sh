@@ -21,12 +21,12 @@ if [ "${IS_DOCKER:-false}" = "true" ]; then
 else
     # Local context - derive paths from script location
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd)"
-    E2E_CONFIG_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    E2E_CONFIG_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
     SCRIPTS_DIR="${SCRIPTS_DIR:-"$SCRIPT_DIR"}"
-    ARTIFACTS_DIR="${ARTIFACTS_DIR:-"$SCRIPT_DIR/artifacts"}"
-    NODES_DIR="${NODES_DIR:-"$SCRIPT_DIR/../docker/.nodes"}"
-    E2E_ENV_FILE="${E2E_ENV_FILE:-"$SCRIPT_DIR/../envs/bls-testnet.env"}"
-    FOUNDRY_ROOT_DIR="${FOUNDRY_ROOT_DIR:-"$SCRIPT_DIR/../../.."}"
+    ARTIFACTS_DIR="${ARTIFACTS_DIR:-"$E2E_CONFIG_ROOT/../../contracts/artifacts"}"
+    NODES_DIR="${NODES_DIR:-"$E2E_CONFIG_ROOT/../../contracts/.nodes"}"
+    E2E_ENV_FILE="${E2E_ENV_FILE:-"$E2E_CONFIG_ROOT/../envs/bls-testnet.env"}"
+    FOUNDRY_ROOT_DIR="${FOUNDRY_ROOT_DIR:-"$E2E_CONFIG_ROOT/../../contracts"}"
 fi
 
 # =============================================================================
@@ -91,7 +91,7 @@ silent_success() {
 # =============================================================================
 
 # Export path variables
-export SCRIPTS_DIR ARTIFACTS_DIR NODES_DIR E2E_ENV_FILE FOUNDRY_ROOT_DIR E2E_CONFIG_ROOT
+export SCRIPTS_DIR ARTIFACTS_DIR NODES_DIR E2E_ENV_FILE FOUNDRY_ROOT_DIR
 
 # Auto-load environment if this script is sourced
 if [ "${BASH_SOURCE[0]}" != "${0}" ]; then

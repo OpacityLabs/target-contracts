@@ -9,7 +9,9 @@
 # Exit on any error
 set -e
 
-source $SCRIPTS_DIR/config.sh
+source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
+cd "$SCRIPTS_DIR"
+
 # Check if slot number argument is provided
 if [ $# -ne 1 ]; then
     echo "Usage: $0 <slot_number>"

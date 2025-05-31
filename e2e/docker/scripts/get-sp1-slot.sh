@@ -11,8 +11,8 @@
 # Exit on any error
 set -e
 
-cd "$(dirname "${BASH_SOURCE[0]}")"
-source config.sh
+source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
+cd "$SCRIPTS_DIR"
 
 if [ "$IS_SP1HELIOS_MOCK" = "1" ]; then
     echo "SP1Helios is mocked, not using slot number" >&2

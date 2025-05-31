@@ -3,8 +3,8 @@
 # Exit on any error
 set -e
 
-source $SCRIPTS_DIR/config.sh
-cd $SCRIPTS_DIR
+source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
+cd "$SCRIPTS_DIR"
 
 echo "Deploying bridge contracts on L1 and L2..."
 ./deploy-bridge.sh

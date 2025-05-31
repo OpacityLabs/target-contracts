@@ -3,8 +3,8 @@
 # Exit on any error
 set -e
 
-cd "$(dirname "${BASH_SOURCE[0]}")"
-source config.sh
+source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
+cd "$SCRIPTS_DIR"
 
 # Read addresses from deployment files
 L1_DEPLOY_PATH="$ARTIFACTS_DIR/l1-deploy.json"
