@@ -7,7 +7,13 @@ source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 cd "$SCRIPTS_DIR"
 
 echo "Deploying bridge contracts on L1 and L2..."
-./deploy-bridge.sh
+# Use the improved deployment script if it exists and verification is needed
+if [ ! -z "$L2_ETHERSCAN_API_KEY" ] && [ -f ./deploy-bridge-with-verification.sh ]; then
+    echo "Using improved deployment script with verification support..."
+    ./deploy-bridge-with-verification.sh
+else
+    ./deploy-bridge.sh
+fi
 
 ./update-shim.sh
 

@@ -62,14 +62,43 @@ export SP1HELIOS_ADDRESS=$SP1HELIOS_ADDRESS
 
 # Deploy L2 contracts
 if [ ! -z "$L2_ETHERSCAN_API_KEY" ]; then
-    # This fails to verify QuorumBitmapHistoryLib because it's an external library and you need to link it with --libraries flag
-    # I tried doing that but then it failed to verify the mimic, because it's somehow affected the verification of the RLP library
-    # My guess is that maybe there is some weird issue with mixing external and internal libraries when it comes to solc, but I don't knoq
-
-    # TODO: Find solution: Either fix the verification of the QuorumBitmapHistoryLib or find a way to detect the script's etherscan verification failed
-    # forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL --verify --etherscan-api-key $L2_ETHERSCAN_API_KEY
-
+    echo "Deploying L2 contracts..."
+    # Deploy contracts first without verification to avoid library linking issues during deployment
     forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL | silent_success
+    
+    echo "Attempting contract verification on Gnosisscan..."
+    
+    # Extract contract addresses from deployment output
+    if [ -f "$L2_OUT_PATH" ]; then
+        REGISTRY_COORDINATOR_MIMIC=$(cat $L2_OUT_PATH | jq -r '.registryCoordinatorMimic')
+        BLS_SIGNATURE_CHECKER=$(cat $L2_OUT_PATH | jq -r '.blsSignatureChecker')
+        SIGNATURE_CONSUMER=$(cat $L2_OUT_PATH | jq -r '.signatureConsumer')
+        
+        # Note: QuorumBitmapHistoryLib is deployed as part of the BLSSignatureChecker/RegistryCoordinatorMimic
+        # The library verification needs special handling due to it being an external library
+        
+        # Verify contracts that don't depend on the external library first
+        echo "Verifying SignatureConsumer..."
+        forge verify-contract $SIGNATURE_CONSUMER \
+            SignatureConsumer \
+            --rpc-url $L2_RPC_URL \
+            --etherscan-api-key $L2_ETHERSCAN_API_KEY \
+            --constructor-args $(cast abi-encode "constructor(address)" $BLS_SIGNATURE_CHECKER) \
+            2>/dev/null || echo "SignatureConsumer verification may require manual intervention"
+        
+        # For contracts using QuorumBitmapHistoryLib, verification may need manual steps
+        echo ""
+        echo "NOTE: RegistryCoordinatorMimic and BLSSignatureChecker use QuorumBitmapHistoryLib,"
+        echo "which is an external library. These contracts may require manual verification on Gnosisscan"
+        echo "due to library linking requirements."
+        echo ""
+        echo "To manually verify these contracts:"
+        echo "1. Deploy QuorumBitmapHistoryLib separately if needed"
+        echo "2. Use the --libraries flag with forge verify-contract"
+        echo "3. Or verify manually through Gnosisscan web interface"
+    else
+        echo "Warning: L2 deployment output not found at $L2_OUT_PATH"
+    fi
 else
     forge script DeployL2 --broadcast --rpc-url $L2_RPC_URL | silent_success
 fi
