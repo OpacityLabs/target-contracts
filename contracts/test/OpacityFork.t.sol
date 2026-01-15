@@ -60,6 +60,7 @@ contract OpacityForkTest is Test {
 
     // tx: 0xefc0383920f5b2127b84b44655197a2d4c385dc7baa11f8a5d88f84e7f61d100
     // This version of the contract uses block.number - 1, the transaction is at block number 3681761, so the blocknumber in the middleware data is 3681760
+    // The proof fixtures are from block 3681762
     uint256 constant MIDDLEWARE_SHIM_DATA_UPDATE_BLOCKNUMBER = 3681760;
     uint256 constant MIDDLEWARE_SHIM_DATA_PROOF_SLOTNUMBER = 1234;
     address constant MIDDLEWARE_SHIM_ADDRESS_HOLESKY = 0xaA8B9E35ccCcFf56A738d0C55569968Cf1C588A1;

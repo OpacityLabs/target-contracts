@@ -282,9 +282,9 @@ contract RegistryCoordinatorMimic is
         bytes memory key = abi.encode(MIDDLEWARE_DATA_HASH_SLOT);
         bytes memory value = abi.encodePacked(middlewareDataHash);
         bytes memory result = SecureMerkleTrie.get(key, stateUpdateProof.storageProof, stateUpdateProof.storageHash);
-        result = RLPReader.readBytes(result);
+        bytes memory decodedResult = RLPReader.readBytes(result);
         require(
-            keccak256(abi.encodePacked(result)) == keccak256(abi.encodePacked(value)), StorageProofVerificationFailed()
+            keccak256(decodedResult) == keccak256(value), StorageProofVerificationFailed()
         );
 
         // verify the account proof
