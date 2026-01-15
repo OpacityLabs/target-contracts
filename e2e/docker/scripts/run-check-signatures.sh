@@ -40,6 +40,9 @@ export L2_RPC_URL
 export PRIVATE_KEY=$DEPLOYER_KEY
 export OPERATOR_KEYS_DIR="$NODES_DIR/operator_keys/"
 
+# Support dynamic operator names - can be overridden via environment
+export OPERATOR_NAMES="${OPERATOR_NAMES:-testacc1,testacc2,testacc3}"
+
 # Run the Forge script with required environment variables
 cd "$FOUNDRY_ROOT_DIR"
 echo "Running check signatures..."

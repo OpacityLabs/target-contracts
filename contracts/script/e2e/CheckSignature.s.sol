@@ -33,17 +33,13 @@ contract CheckSignature is Script {
     }
 
     struct OperatorData {
-        Operator operator1;
-        Operator operator2;
-        Operator operator3;
+        Operator[] operators;
         address[] operatorAddresses;
     }
 
     struct SignatureData {
         bytes32 messageHash;
-        BN254.G1Point s1;
-        BN254.G1Point s2;
-        BN254.G1Point s3;
+        BN254.G1Point[] signatures;
         BN254.G1Point sigma;
     }
 
@@ -52,7 +48,6 @@ contract CheckSignature is Script {
         uint32 blockNumber;
     }
 
-    // TODO: does not support dynamic operator counts
     function run() external {
         ContractAddresses memory contracts = ContractAddresses({
             registryCoordinator: vm.envAddress("REGISTRY_COORDINATOR_ADDRESS"),
@@ -65,29 +60,32 @@ contract CheckSignature is Script {
             blockNumber: 0 // Will be set later
         });
 
-        // Read operator keys from files
-        OperatorData memory operatorData;
-        operatorData.operator1 = _readOperatorFromFile("testacc1", config.operatorKeysDir);
-        operatorData.operator2 = _readOperatorFromFile("testacc2", config.operatorKeysDir);
-        operatorData.operator3 = _readOperatorFromFile("testacc3", config.operatorKeysDir);
+        // Read operator keys from files dynamically
+        OperatorData memory operatorData = _readOperators(config.operatorKeysDir);
 
         // Create a message to sign
         SignatureData memory sigData;
         sigData.messageHash = bytes32(uint256(0x1234));
 
-        // Sign the message with BLS
-        sigData.s1 = _signBLSMessage(operatorData.operator1, sigData.messageHash);
-        sigData.s2 = _signBLSMessage(operatorData.operator2, sigData.messageHash);
-        sigData.s3 = _signBLSMessage(operatorData.operator3, sigData.messageHash);
+        // Sign the message with BLS for all operators
+        sigData.signatures = new BN254.G1Point[](operatorData.operators.length);
+        sigData.sigma = BN254.G1Point(0, 0);
 
-        sigData.sigma = sigData.s1.plus(sigData.s2).plus(sigData.s3);
+        for (uint256 i = 0; i < operatorData.operators.length; i++) {
+            sigData.signatures[i] = _signBLSMessage(operatorData.operators[i], sigData.messageHash);
+            if (i == 0) {
+                sigData.sigma = sigData.signatures[i];
+            } else {
+                sigData.sigma = sigData.sigma.plus(sigData.signatures[i]);
+            }
+        }
 
         vm.createSelectFork(vm.envString("L1_RPC_URL"));
 
-        operatorData.operatorAddresses = new address[](3);
-        operatorData.operatorAddresses[0] = operatorData.operator1.operator;
-        operatorData.operatorAddresses[1] = operatorData.operator2.operator;
-        operatorData.operatorAddresses[2] = operatorData.operator3.operator;
+        operatorData.operatorAddresses = new address[](operatorData.operators.length);
+        for (uint256 i = 0; i < operatorData.operators.length; i++) {
+            operatorData.operatorAddresses[i] = operatorData.operators[i].operator;
+        }
 
         config.blockNumber = uint32(block.number - 1);
 
@@ -131,6 +129,48 @@ contract CheckSignature is Script {
         console.log("Quorum stake totals:");
         console.log("Signed stake for quorum 0:", quorumStakeTotals.signedStakeForQuorum[0]);
         console.log("Total stake for quorum 0:", quorumStakeTotals.totalStakeForQuorum[0]);
+    }
+
+    function _readOperators(string memory operatorKeysDir) internal view returns (OperatorData memory) {
+        // Get the list of operator names from environment variable or config
+        string memory operatorNames = vm.envOr("OPERATOR_NAMES", string("testacc1,testacc2,testacc3"));
+
+        // Count operators by counting commas + 1
+        uint256 operatorCount = 1;
+        bytes memory namesBytes = bytes(operatorNames);
+        for (uint256 i = 0; i < namesBytes.length; i++) {
+            if (namesBytes[i] == bytes1(uint8(44))) {
+                // comma
+                operatorCount++;
+            }
+        }
+
+        OperatorData memory operatorData;
+        operatorData.operators = new Operator[](operatorCount);
+
+        // Parse operator names and read their data
+        uint256 currentIndex = 0;
+        uint256 startIndex = 0;
+
+        for (uint256 i = 0; i <= namesBytes.length; i++) {
+            if (i == namesBytes.length || namesBytes[i] == bytes1(uint8(44))) {
+                // Extract operator name
+                uint256 nameLength = i - startIndex;
+                bytes memory nameBytes = new bytes(nameLength);
+                for (uint256 j = 0; j < nameLength; j++) {
+                    nameBytes[j] = namesBytes[startIndex + j];
+                }
+                string memory operatorName = string(nameBytes);
+
+                // Read operator data
+                operatorData.operators[currentIndex] = _readOperatorFromFile(operatorName, operatorKeysDir);
+
+                currentIndex++;
+                startIndex = i + 1;
+            }
+        }
+
+        return operatorData;
     }
 
     function _readOperatorFromFile(string memory operatorName, string memory operatorKeysDir)
