@@ -15,7 +15,8 @@ remappings = [
 # I can't tell why foundry wants the path to be exact but it does not work for me
 fs_permissions = [
     { access = "read-write", path = "./artifacts" },
-    { access = "read", path = "./.nodes" }
+    { access = "read", path = "./.nodes" },
+    { access = "read", path = "./test/fixtures" }
 ]
 
 [rpc_endpoints]
